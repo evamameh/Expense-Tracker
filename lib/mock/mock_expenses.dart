@@ -1,0 +1,44 @@
+import '../models/expense.dart';
+
+final mockExpenses = [
+  // ==== OCTOBER 2025 ====
+  Expense(id: "1", amount: 84.30, category: "Groceries", date: DateTime(2025, 10, 2), currency: "PHP"),
+  Expense(id: "2", amount: 45.00, category: "Transport", date: DateTime(2025, 10, 3), currency: "PHP"),
+  Expense(id: "3", amount: 15.99, category: "Subscriptions", date: DateTime(2025, 10, 4), currency: "PHP"),
+  Expense(id: "4", amount: 120.50, category: "Shopping", date: DateTime(2025, 10, 5), currency: "PHP"),
+  Expense(id: "5", amount: 42.00, category: "Dining", date: DateTime(2025, 10, 7), currency: "PHP"),
+  Expense(id: "6", amount: 18.75, category: "Transport", date: DateTime(2025, 10, 8), currency: "PHP"),
+  Expense(id: "7", amount: 260.00, category: "Bills", date: DateTime(2025, 10, 10), currency: "PHP"),
+  Expense(id: "8", amount: 99.99, category: "Shopping", date: DateTime(2025, 10, 11), currency: "PHP"),
+  Expense(id: "9", amount: 65.20, category: "Dining", date: DateTime(2025, 10, 12), currency: "PHP"),
+  Expense(id: "10", amount: 30.50, category: "Groceries", date: DateTime(2025, 10, 14), currency: "PHP"),
+  Expense(id: "11", amount: 25.00, category: "Fun", date: DateTime(2025, 10, 16), currency: "PHP"),
+  Expense(id: "12", amount: 13.49, category: "Subscriptions", date: DateTime(2025, 10, 18), currency: "PHP"),
+  Expense(id: "13", amount: 75.00, category: "Health", date: DateTime(2025, 10, 20), currency: "PHP"),
+  Expense(id: "14", amount: 92.99, category: "Groceries", date: DateTime(2025, 10, 21), currency: "PHP"),
+
+  // ==== NOVEMBER 2025 ====
+  Expense(id: "15", amount: 50.00, category: "Dining", date: DateTime(2025, 11, 1), currency: "PHP"),
+  Expense(id: "16", amount: 22.00, category: "Transport", date: DateTime(2025, 11, 2), currency: "PHP"),
+  Expense(id: "17", amount: 120.75, category: "Groceries", date: DateTime(2025, 11, 3), currency: "PHP"),
+  Expense(id: "18", amount: 210.00, category: "Bills", date: DateTime(2025, 11, 4), currency: "PHP"),
+  Expense(id: "19", amount: 37.99, category: "Fun", date: DateTime(2025, 11, 5), currency: "PHP"),
+  Expense(id: "20", amount: 55.00, category: "Dining", date: DateTime(2025, 11, 6), currency: "PHP"),
+  Expense(id: "21", amount: 95.90, category: "Shopping", date: DateTime(2025, 11, 7), currency: "PHP"),
+  Expense(id: "22", amount: 160.00, category: "Health", date: DateTime(2025, 11, 8), currency: "PHP"),
+  Expense(id: "23", amount: 45.00, category: "Transport", date: DateTime(2025, 11, 9), currency: "PHP"),
+  Expense(id: "24", amount: 15.99, category: "Subscriptions", date: DateTime(2025, 11, 10), currency: "PHP"),
+
+  // ==== DECEMBER 2025 ====
+  Expense(id: "25", amount: 180.40, category: "Groceries", date: DateTime(2025, 12, 2), currency: "PHP"),
+  Expense(id: "26", amount: 38.00, category: "Transport", date: DateTime(2025, 12, 3), currency: "PHP"),
+  Expense(id: "27", amount: 140.00, category: "Shopping", date: DateTime(2025, 12, 4), currency: "PHP"),
+  Expense(id: "28", amount: 55.00, category: "Dining", date: DateTime(2025, 12, 5), currency: "PHP"),
+  Expense(id: "29", amount: 25.00, category: "Fun", date: DateTime(2025, 12, 7), currency: "PHP"),
+  Expense(id: "30", amount: 260.00, category: "Bills", date: DateTime(2025, 12, 10), currency: "PHP"),
+  Expense(id: "31", amount: 70.20, category: "Health", date: DateTime(2025, 12, 11), currency: "PHP"),
+  Expense(id: "32", amount: 24.99, category: "Subscriptions", date: DateTime(2025, 12, 12), currency: "PHP"),
+  Expense(id: "33", amount: 89.50, category: "Dining", date: DateTime(2025, 12, 14), currency: "PHP"),
+  Expense(id: "34", amount: 43.00, category: "Transport", date: DateTime(2025, 12, 15), currency: "PHP"),
+  Expense(id: "35", amount: 120.00, category: "Groceries", date: DateTime(2025, 12, 17), currency: "PHP"),
+];
