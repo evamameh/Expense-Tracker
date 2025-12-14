@@ -30,22 +30,20 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   late bool _hasReceipt;
 
   @override
-  void initState() {
-    super.initState();
+    void initState() {
+      super.initState();
 
-    _amountController =
-        TextEditingController(text: widget.expense.amount.toString());
-    _noteController = TextEditingController(text: widget.expense.note ?? "");
+      _amountController =
+          TextEditingController(text: widget.expense.amount.toString());
+      _noteController = TextEditingController(text: widget.expense.note ?? "");
 
-    _selectedDate = widget.expense.date;
-    _selectedCategory = widget.expense.category;
+      _selectedDate = widget.expense.date;
+      _selectedCategory = widget.expense.category;
 
-    _isRecurring = widget.expense.isRecurring;
-    _hasReceipt = widget.expense.hasReceipt;
-
-    // set currency to this expense’s currency
-    ref.read(selectedCurrencyProvider.notifier).state = widget.expense.currency;
-  }
+      _isRecurring = widget.expense.isRecurring;
+      _hasReceipt = widget.expense.hasReceipt;
+      
+    }
 
   @override
   void dispose() {
@@ -131,7 +129,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
           key: _formKey,
           child: ListView(
             children: [
-              // ----- Currency Selector -----
+              // ---------- Currency Selector ----------
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -163,14 +161,14 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                             ),
                           ),
                         ),
-                      ),
+                      )
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              // ----- Amount -----
+              // ---------- Amount ----------
               TextFormField(
                 controller: _amountController,
                 keyboardType:
@@ -181,8 +179,9 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                   labelStyle: TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: Color(0xFF12291D),
-                  border:
-                      OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
                 ),
                 validator: (v) =>
                     (v == null || v.isEmpty) ? "Enter amount" : null,
@@ -190,7 +189,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 16),
 
-              // ----- Category + Date -----
+              // ---------- Category + Date ----------
               Row(
                 children: [
                   Expanded(
@@ -226,7 +225,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 16),
 
-              // ----- Note -----
+              // ---------- Note ----------
               TextFormField(
                 controller: _noteController,
                 maxLines: 2,
@@ -236,31 +235,33 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                   labelStyle: TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: Color(0xFF12291D),
-                  border:
-                      OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12))),
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // ----- Toggles -----
+              // ---------- Toggles ----------
               SwitchListTile(
                 value: _hasReceipt,
                 onChanged: (v) => setState(() => _hasReceipt = v),
-                title: const Text("Has Receipt?", style: TextStyle(color: Colors.white)),
+                title: const Text("Has Receipt?",
+                    style: TextStyle(color: Colors.white)),
                 activeColor: Colors.greenAccent,
               ),
 
               SwitchListTile(
                 value: _isRecurring,
                 onChanged: (v) => setState(() => _isRecurring = v),
-                title: const Text("Recurring Expense", style: TextStyle(color: Colors.white)),
+                title: const Text("Recurring Expense",
+                    style: TextStyle(color: Colors.white)),
                 activeColor: Colors.greenAccent,
               ),
 
               const SizedBox(height: 30),
 
-              // ----- Save Button -----
+              // ---------- Save Button ----------
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -274,15 +275,15 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                   ),
                   child: const Text(
                     "Save Changes",
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
 
               const SizedBox(height: 12),
 
-              // ----- Delete Button -----
+              // ---------- Delete Button ----------
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -296,8 +297,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                   ),
                   child: const Text(
                     "Delete Expense",
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

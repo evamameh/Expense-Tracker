@@ -16,12 +16,9 @@ class TransactionItem extends ConsumerWidget {
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
 
-    // Rate map example:
-    // {"USD": 56, "EUR": 60, "GBP": 70, "JPY": 0.40, "PHP": 1}
-
     double convertToPHP(double amount, String fromCurrency) {
       final rate = rates[fromCurrency] ?? 1.0;
-      return amount * rate; // amount * PHP per currency unit
+      return amount * rate;
     }
 
     double convertFromPHP(double amountPHP, String toCurrency) {
@@ -29,7 +26,6 @@ class TransactionItem extends ConsumerWidget {
       return amountPHP / rate;
     }
 
-    // Convert the expense to selected currency
     double amountInPHP = convertToPHP(expense.amount, expense.currency);
     double finalAmount = convertFromPHP(amountInPHP, selectedCurrency);
 
@@ -51,7 +47,7 @@ class TransactionItem extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            // Category icon
+            // Icon
             Container(
               width: 44,
               height: 44,
@@ -83,13 +79,14 @@ class TransactionItem extends ConsumerWidget {
                   ),
                   Text(
                     "${expense.date.month}/${expense.date.day}/${expense.date.year}",
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    style:
+                        const TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                 ],
               ),
             ),
 
-            // Amount with selected currency
+            // Amount
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -110,7 +107,7 @@ class TransactionItem extends ConsumerWidget {
                       const Icon(Icons.repeat,
                           color: Colors.white54, size: 16),
                   ],
-                )
+                ),
               ],
             ),
           ],
