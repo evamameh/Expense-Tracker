@@ -1,3 +1,5 @@
+// home_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,7 +10,6 @@ import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
 import '../../providers/computed/selected_month_provider.dart';
-import '../../providers/budget_notifier.dart';
 
 // Widgets
 import '../widgets/progress_bar.dart';
@@ -19,29 +20,44 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final totalSpent = ref.watch(monthlyTotalProvider).toDouble();
     final expenses = ref.watch(expensesNotifierProvider);
-    final byCategory = ref.watch(expensesByCategoryProvider);
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
     final selectedMonth = ref.watch(selectedMonthProvider);
-    final budgets = ref.watch(budgetNotifierProvider);
 
-    // ===========================
-    //   MAIN BUDGET IN PHP
-    // ===========================
+    // -----------------------------
+    // BASE MONTHLY BUDGET (IN PHP)
+    // -----------------------------
     const monthlyBudgetPHP = 250000.0;
 
-    // ===========================
-    //   CONVERSION FUNCTION
-    //   PHP → selected currency
-    // ===========================
-    double convert(double amount) {
-      final rate = rates[selectedCurrency] ?? 1.0;
-      return amount / rate; // PHP to selected currency
+    // -----------------------------
+    // CONVERSION HELPERS
+    // -----------------------------
+    // Convert ANY expense TO PHP
+    double convertToPHP(double amount, String fromCurrency) {
+      final rate = (rates[fromCurrency] ?? 1.0).toDouble();
+      return amount * rate;
     }
 
-    final remaining = monthlyBudgetPHP - totalSpent;
+    // Convert PHP → selectedCurrency for UI
+    double convertFromPHP(double phpAmount) {
+      final rate = (rates[selectedCurrency] ?? 1.0).toDouble();
+      return phpAmount / rate;
+    }
+
+    // -----------------------------
+    // TOTAL SPENT FOR SELECTED MONTH (PHP)
+    // -----------------------------
+    final totalSpentPHP = expenses
+        .where((e) =>
+            e.date.year == selectedMonth.year &&
+            e.date.month == selectedMonth.month)
+        .fold<double>(0.0, (sum, e) => sum + convertToPHP(e.amount, e.currency));
+
+    // Values converted to UI currency
+    final totalSpent = convertFromPHP(totalSpentPHP);
+    final remaining = convertFromPHP(monthlyBudgetPHP - totalSpentPHP);
+    final monthlyBudgetConverted = convertFromPHP(monthlyBudgetPHP);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
@@ -51,11 +67,9 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              
-
-              // ===========================
-              //     MONTH SELECTOR
-              // ===========================
+              // -----------------------------
+              // MONTH PICKER
+              // -----------------------------
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
@@ -92,9 +106,7 @@ class HomePage extends ConsumerWidget {
                         Text(
                           "${_monthName(selectedMonth.month)} ${selectedMonth.year}",
                           style: const TextStyle(
-                            fontSize: 22,
-                            color: Colors.white,
-                          ),
+                              fontSize: 22, color: Colors.white),
                         ),
                         const SizedBox(width: 6),
                         const Icon(Icons.arrow_drop_down, color: Colors.white),
@@ -107,9 +119,9 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // ===========================
-              //     CURRENCY SELECTOR
-              // ===========================
+              // -----------------------------
+              // CURRENCY SELECTOR
+              // -----------------------------
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -148,9 +160,9 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // ===========================
-              //         BALANCE CARD
-              // ===========================
+              // -----------------------------
+              // BALANCE CARD
+              // -----------------------------
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -180,8 +192,9 @@ class HomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
 
+                    // Remaining balance
                     Text(
-                      "${convert(remaining).toStringAsFixed(2)} $selectedCurrency",
+                      "${remaining.toStringAsFixed(2)} $selectedCurrency",
                       style: const TextStyle(
                         fontSize: 36,
                         color: Colors.white,
@@ -191,22 +204,24 @@ class HomePage extends ConsumerWidget {
 
                     const SizedBox(height: 6),
 
+                    // Monthly budget
                     Text(
-                      "/ ${convert(monthlyBudgetPHP).toStringAsFixed(2)} $selectedCurrency",
+                      "/ ${monthlyBudgetConverted.toStringAsFixed(2)} $selectedCurrency",
                       style: const TextStyle(color: Colors.white54),
                     ),
 
                     const SizedBox(height: 18),
 
+                    // Progress bar (spent)
                     ProgressBar(
-                      value: (totalSpent / monthlyBudgetPHP).clamp(0, 1),
+                      value: (totalSpentPHP / monthlyBudgetPHP).clamp(0, 1),
                       color: Colors.greenAccent,
                     ),
 
                     const SizedBox(height: 6),
 
                     Text(
-                      "You've spent ${convert(totalSpent).toStringAsFixed(2)} $selectedCurrency so far.",
+                      "You've spent ${totalSpent.toStringAsFixed(2)} $selectedCurrency so far.",
                       style: const TextStyle(color: Colors.white60),
                     ),
                   ],
@@ -215,15 +230,15 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // ===========================
-              //       SUMMARY CARDS
-              // ===========================
+              // -----------------------------
+              // SUMMARY CARDS
+              // -----------------------------
               Row(
                 children: [
                   _summaryCard(
                     title: "Total Spent",
                     value:
-                        "${convert(totalSpent).toStringAsFixed(2)} $selectedCurrency",
+                        "${totalSpent.toStringAsFixed(2)} $selectedCurrency",
                     icon: Icons.trending_down,
                     iconColor: Colors.redAccent,
                   ),
@@ -231,7 +246,7 @@ class HomePage extends ConsumerWidget {
                   _summaryCard(
                     title: "Total Saved",
                     value:
-                        "${convert(remaining).toStringAsFixed(2)} $selectedCurrency",
+                        "${remaining.toStringAsFixed(2)} $selectedCurrency",
                     icon: Icons.trending_up,
                     iconColor: Colors.greenAccent,
                   ),
@@ -240,9 +255,9 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 28),
 
-              // ===========================
-              //     TOP CATEGORIES
-              // ===========================
+              // -----------------------------
+              // TOP CATEGORIES SUMMARY
+              // -----------------------------
               const Text(
                 "Top Categories",
                 style: TextStyle(
@@ -252,27 +267,28 @@ class HomePage extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
+              // categories based on expenses
               Column(
-                children: byCategory.entries.map((entry) {
+                children: ref
+                    .watch(expensesByCategoryProvider)
+                    .entries
+                    .map((entry) {
                   final category = entry.key;
-                  final spent = entry.value.toDouble();
-                  final limit = budgets[category]?.limit ?? 1.0;
+                  final spentPHP = entry.value.toDouble();
+                  final spentConverted = convertFromPHP(spentPHP);
 
                   return _categoryCard(
                     category: category,
-                    spent: convert(spent),
-                    limit: convert(limit),
-                    percent:
-                        (spent / limit * 100).clamp(0, 100).toDouble(),
+                    spent: spentConverted,
                   );
                 }).toList(),
               ),
 
               const SizedBox(height: 28),
 
-              // ===========================
-              //   RECENT TRANSACTIONS
-              // ===========================
+              // -----------------------------
+              // RECENT TRANSACTIONS
+              // -----------------------------
               const Text(
                 "Recent Transactions",
                 style: TextStyle(
@@ -284,6 +300,7 @@ class HomePage extends ConsumerWidget {
 
               Column(
                 children: expenses.reversed
+                    .take(5)
                     .map((e) => TransactionItem(expense: e))
                     .toList(),
               ),
@@ -294,7 +311,7 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  // MONTH NAME HELPER
+  // Month name helper
   String _monthName(int m) {
     const names = [
       "January",
@@ -313,7 +330,7 @@ class HomePage extends ConsumerWidget {
     return names[m - 1];
   }
 
-  // SUMMARY CARD WIDGET
+  // Summary card widget
   Widget _summaryCard({
     required String title,
     required String value,
@@ -346,12 +363,10 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  // CATEGORY CARD WIDGET
+  // Simple category card (no budgets here)
   Widget _categoryCard({
     required String category,
     required double spent,
-    required double limit,
-    required double percent,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -360,26 +375,13 @@ class HomePage extends ConsumerWidget {
         color: const Color(0xFF12291D),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(category,
-                  style: const TextStyle(color: Colors.white, fontSize: 16)),
-              Text("${percent.toStringAsFixed(0)}%",
-                  style: const TextStyle(color: Colors.orangeAccent)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          ProgressBar(
-              value: (spent / limit).clamp(0, 1), color: Colors.greenAccent),
-          const SizedBox(height: 4),
-          Text(
-            "${spent.toStringAsFixed(2)} / ${limit.toStringAsFixed(2)}",
-            style: const TextStyle(color: Colors.white60),
-          ),
+          Text(category,
+              style: const TextStyle(color: Colors.white, fontSize: 16)),
+          Text("${spent.toStringAsFixed(2)}",
+              style: const TextStyle(color: Colors.greenAccent)),
         ],
       ),
     );

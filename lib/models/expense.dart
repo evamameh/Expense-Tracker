@@ -1,5 +1,3 @@
-// lib/models/expense.dart
-
 class Expense {
   final String id;
   final double amount; // total amount

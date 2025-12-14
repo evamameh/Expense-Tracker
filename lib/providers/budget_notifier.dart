@@ -8,14 +8,14 @@ class Budget {
 final budgetNotifierProvider =
     StateNotifierProvider<BudgetNotifier, Map<String, Budget>>((ref) {
   return BudgetNotifier({
-    "Groceries": Budget(500),
-    "Transport": Budget(200),
-    "Dining": Budget(200),
-    "Fun": Budget(150),
-    "Shopping": Budget(300),
-    "Bills": Budget(400),
-    "Subscriptions": Budget(100),
-    "Health": Budget(150),
+    "Groceries": Budget(10500),
+    "Transport": Budget(5000),
+    "Dining": Budget(5000),
+    "Fun": Budget(3000),
+    "Shopping": Budget(2500),
+    "Bills": Budget(3500),
+    "Subscriptions": Budget(2000),
+    "Health": Budget(2500),
   });
 });
 

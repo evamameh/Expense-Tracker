@@ -1,3 +1,5 @@
+// budget_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,18 +18,19 @@ class BudgetPage extends ConsumerWidget {
     final budgets = ref.watch(budgetNotifierProvider);
     final expenses = ref.watch(expensesNotifierProvider);
 
-    // CURRENCY SYSTEM
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
 
-    double convertToPHP(double amount, String fromCurrency) {
-      final rate = (rates[fromCurrency] ?? 1.0).toDouble();
-      return amount * rate;
+    // Convert ANY currency to PHP
+    double toPHP(double amount, String from) {
+      final r = (rates[from] ?? 1.0).toDouble();
+      return amount * r;
     }
 
-    double convertFromPHP(double amountPHP, String toCurrency) {
-      final rate = (rates[toCurrency] ?? 1.0).toDouble();
-      return amountPHP / rate;
+    // Convert PHP → selected currency
+    double fromPHP(double amountPHP, String to) {
+      final r = (rates[to] ?? 1.0).toDouble();
+      return amountPHP / r;
     }
 
     return Scaffold(
@@ -38,7 +41,7 @@ class BudgetPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // PAGE TITLE
+              // TITLE
               const Text(
                 "Budgets",
                 style: TextStyle(
@@ -47,9 +50,10 @@ class BudgetPage extends ConsumerWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+
               const SizedBox(height: 20),
 
-              // CURRENCY SELECTOR (SAME AS HOME PAGE)
+              // CURRENCY SELECTOR
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -93,29 +97,28 @@ class BudgetPage extends ConsumerWidget {
                 child: ListView(
                   children: budgets.entries.map((entry) {
                     final category = entry.key;
-                    final limitPHP = entry.value.limit;
+                    final limitPHP = entry.value.limit; // STORED IN PHP
 
-                    // Calculate spent in PHP (respecting splits if any)
+                    // Calculate SPENT in PHP
                     final spentPHP = expenses
-                        .where((e) => _expenseAffectsCategory(e, category))
-                        .fold<double>(
-                          0.0,
-                          (sum, e) {
-                            // if split exists and has this category, add split amount
-                            if (e.splits != null && e.splits!.isNotEmpty) {
-                              return sum + (e.splits![category] ?? 0.0) * ( (rates[e.currency] ?? 1.0).toDouble() );
-                            }
-                            // otherwise whole amount goes to e.category
-                            return sum + convertToPHP(e.amount, e.currency);
-                          },
-                        );
+                        .where((e) => _affectsCategory(e, category))
+                        .fold<double>(0.0, (sum, e) {
+                      if (e.splits != null && e.splits!.containsKey(category)) {
+                        return sum +
+                            (e.splits![category] ?? 0.0) *
+                                (rates[e.currency] ?? 1.0);
+                      }
+                      return sum + toPHP(e.amount, e.currency);
+                    });
 
-                    // Convert to selected currency
-                    final spent = convertFromPHP(spentPHP, selectedCurrency);
-                    final limit = convertFromPHP(limitPHP, selectedCurrency);
+                    // Convert PHP → user selected currency
+                    final spent = fromPHP(spentPHP, selectedCurrency);
+                    final limit = fromPHP(limitPHP, selectedCurrency);
 
-                    // ensure percent is a double for ProgressBar
-                    final percent = (limit == 0) ? 0.0 : (spent / limit).clamp(0, 1.0).toDouble();
+                    // percent MUST BE DOUBLE
+                    final percent = (limit == 0)
+                        ? 0.0
+                        : (spent / limit).clamp(0.0, 1.0);
 
                     final isOver = spent > limit;
 
@@ -129,7 +132,7 @@ class BudgetPage extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // HEADER ROW with edit button
+                          // TOP ROW: CATEGORY + EDIT + STATUS
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -138,31 +141,33 @@ class BudgetPage extends ConsumerWidget {
                                 style: const TextStyle(
                                     color: Colors.white, fontSize: 18),
                               ),
+
                               Row(
                                 children: [
-                                  // Edit icon
+                                  // EDIT BUTTON
                                   IconButton(
                                     icon: const Icon(Icons.edit,
                                         color: Colors.white70),
                                     onPressed: () async {
-                                      final newLimit = await _showEditLimitDialog(
+                                      final updated = await _editLimitDialog(
                                           context,
                                           category,
                                           limit,
                                           selectedCurrency);
-                                      if (newLimit != null) {
-                                        // convert entered limit from selectedCurrency -> PHP,
-                                        // because provider stores limits in PHP in this app
-                                        final enteredAsDouble = newLimit;
-                                        final toPHP = enteredAsDouble * (rates[selectedCurrency] ?? 1.0);
-                                        // call your notifier update function (common name: updateLimit)
+
+                                      if (updated != null) {
+                                        final newLimitPHP = updated *
+                                            (rates[selectedCurrency] ?? 1.0);
+
                                         ref
                                             .read(budgetNotifierProvider.notifier)
-                                            .updateLimit(category, toPHP.toDouble());
+                                            .updateLimit(
+                                                category, newLimitPHP);
                                       }
                                     },
                                   ),
 
+                                  // STATUS BADGE
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
@@ -182,32 +187,30 @@ class BudgetPage extends ConsumerWidget {
                                     ),
                                   ),
                                 ],
-                              )
+                              ),
                             ],
                           ),
 
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 12),
 
-                          // Progress Bar
+                          // PROGRESS BAR
                           ProgressBar(
-                            value: percent,
+                            value: percent, // FIXED: ALWAYS DOUBLE
                             color: Colors.greenAccent,
                           ),
 
                           const SizedBox(height: 6),
 
-                          // Spent
+                          // DETAILS
                           Text(
                             "${spent.toStringAsFixed(2)} $selectedCurrency spent",
-                            style:
-                                const TextStyle(color: Colors.white70, fontSize: 14),
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 14),
                           ),
-
-                          // Limit
                           Text(
                             "Limit: ${limit.toStringAsFixed(2)} $selectedCurrency",
-                            style:
-                                const TextStyle(color: Colors.white54, fontSize: 13),
+                            style: const TextStyle(
+                                color: Colors.white54, fontSize: 13),
                           ),
                         ],
                       ),
@@ -222,73 +225,59 @@ class BudgetPage extends ConsumerWidget {
     );
   }
 
-  // Helper: checks whether an expense affects given category (if splits exist, check splits)
-  bool _expenseAffectsCategory(dynamic e, String category) {
-    // e is expected to be Expense model; allow null-safety
-    try {
-      if (e.splits != null && e.splits!.isNotEmpty) {
-        return e.splits!.containsKey(category);
-      }
-      return e.category == category;
-    } catch (_) {
-      return false;
-    }
+  bool _affectsCategory(e, String category) {
+    if (e.splits != null && e.splits!.containsKey(category)) return true;
+    return e.category == category;
   }
 
-  /// Shows a dialog to edit the limit.
-  /// Returns the entered limit in the currently selected currency (or null if cancelled).
-  Future<double?> _showEditLimitDialog(
-      BuildContext context, String category, double currentLimit, String currency) {
-    final controller = TextEditingController(text: currentLimit.toStringAsFixed(2));
+  // Dialog returns NEW LIMIT in selectedCurrency
+  Future<double?> _editLimitDialog(BuildContext context, String category,
+      double current, String currency) {
+    final controller =
+        TextEditingController(text: current.toStringAsFixed(2));
+
     return showDialog<double>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF12291D),
-          title: Text("Edit Limit — $category", style: const TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: "Limit ($currency)",
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  filled: true,
-                  fillColor: const Color(0xFF0B1C14),
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text("Enter the new monthly limit for this category.",
-                  style: TextStyle(color: Colors.white54, fontSize: 12)),
-            ],
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF12291D),
+        title: Text("Edit Limit — $category",
+            style: const TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: "Limit ($currency)",
+            labelStyle: const TextStyle(color: Colors.white70),
+            filled: true,
+            fillColor: const Color(0xFF0B1C14),
+            border: const OutlineInputBorder(),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
-            ),
-            TextButton(
-              onPressed: () {
-                final text = controller.text.trim();
-                final val = double.tryParse(text.replaceAll(',', ''));
-                if (val == null) {
-                  // show local validation
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Enter a valid number")),
-                  );
-                  return;
-                }
-                Navigator.of(ctx).pop(val);
-              },
-              child: const Text("Save", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child:
+                const Text("Cancel", style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text);
+              if (val == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Enter a valid number")));
+                return;
+              }
+              Navigator.pop(ctx, val);
+            },
+            child: const Text("Save",
+                style: TextStyle(
+                    color: Colors.greenAccent,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
     );
   }
 }
