@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/expense.dart';
 import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
+import '../../providers/currency/currency_rates.dart';
 import '../../providers/budget_notifier.dart';
 
 class EditExpensePage extends ConsumerStatefulWidget {
@@ -29,21 +30,26 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   late bool _isRecurring;
   late bool _hasReceipt;
 
+  // ⭐ The currency the user chooses inside this page
+  late String _selectedCurrency;
+
   @override
-    void initState() {
-      super.initState();
+  void initState() {
+    super.initState();
 
-      _amountController =
-          TextEditingController(text: widget.expense.amount.toString());
-      _noteController = TextEditingController(text: widget.expense.note ?? "");
+    _amountController =
+        TextEditingController(text: widget.expense.amount.toString());
+    _noteController = TextEditingController(text: widget.expense.note ?? "");
 
-      _selectedDate = widget.expense.date;
-      _selectedCategory = widget.expense.category;
+    _selectedDate = widget.expense.date;
+    _selectedCategory = widget.expense.category;
 
-      _isRecurring = widget.expense.isRecurring;
-      _hasReceipt = widget.expense.hasReceipt;
-      
-    }
+    _isRecurring = widget.expense.isRecurring;
+    _hasReceipt = widget.expense.hasReceipt;
+
+    // ⭐ The page starts with the expense's actual currency
+    _selectedCurrency = widget.expense.currency;
+  }
 
   @override
   void dispose() {
@@ -53,13 +59,35 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) setState(() => _selectedDate = picked);
+  final picked = await showDatePicker(
+    context: context,
+    initialDate: _selectedDate,
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
+  );
+
+  if (picked != null) {
+    setState(() => _selectedDate = picked);
+  }
+}
+
+  // Convert from old → new currency using stored rates
+  double _convert(double amount, String from, String to, Map<String, double> rates) {
+    final rateFrom = rates[from] ?? 1.0;
+    final rateTo = rates[to] ?? 1.0;
+    return (amount * rateFrom) / rateTo;
+  }
+
+  void _onCurrencyChange(String newCurrency, Map<String, double> rates) {
+    final oldCurrency = _selectedCurrency;
+    final oldAmount = double.tryParse(_amountController.text) ?? 0.0;
+
+    final converted = _convert(oldAmount, oldCurrency, newCurrency, rates);
+
+    setState(() {
+      _selectedCurrency = newCurrency;
+      _amountController.text = converted.toStringAsFixed(2);
+    });
   }
 
   void _save() {
@@ -72,14 +100,12 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
       return;
     }
 
-    final selectedCurrency = ref.read(selectedCurrencyProvider);
-
     final updated = widget.expense.copyWith(
       amount: amount,
       category: _selectedCategory,
       date: _selectedDate,
       note: _noteController.text,
-      currency: selectedCurrency,
+      currency: _selectedCurrency,  // ⭐ Save with new currency
       isRecurring: _isRecurring,
       hasReceipt: _hasReceipt,
     );
@@ -100,6 +126,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   @override
   Widget build(BuildContext context) {
     final budgets = ref.watch(budgetNotifierProvider);
+    final rates = ref.watch(currencyRatesProvider);
+
     final categories = budgets.keys.toList().isNotEmpty
         ? budgets.keys.toList()
         : [
@@ -113,8 +141,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
             "Subscriptions",
             "Other"
           ];
-
-    final selectedCurrency = ref.watch(selectedCurrencyProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -138,14 +164,12 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                       Padding(
                         padding: const EdgeInsets.only(right: 10),
                         child: GestureDetector(
-                          onTap: () => ref
-                              .read(selectedCurrencyProvider.notifier)
-                              .state = c,
+                          onTap: () => _onCurrencyChange(c, rates),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 10),
                             decoration: BoxDecoration(
-                              color: selectedCurrency == c
+                              color: _selectedCurrency == c
                                   ? Colors.greenAccent
                                   : const Color(0xFF1A2E23),
                               borderRadius: BorderRadius.circular(30),
@@ -153,7 +177,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                             child: Text(
                               c,
                               style: TextStyle(
-                                color: selectedCurrency == c
+                                color: _selectedCurrency == c
                                     ? Colors.black
                                     : Colors.white,
                                 fontWeight: FontWeight.bold,
