@@ -161,6 +161,46 @@ class HomePage extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // -----------------------------
+              // STATIC CURRENCY CONVERSION RATES
+              // -----------------------------
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF12291D),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Exchange Rates (to ${selectedCurrency})",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Show all rates converted to the selected currency
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: rates.entries
+                          .where((entry) => entry.key != selectedCurrency) // Exclude selected currency
+                          .map((entry) => _rateCard(
+                                currency: entry.key,
+                                rate: _convertRate(entry.value.toDouble(), selectedCurrency, rates),
+                                selectedCurrency: selectedCurrency,
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // -----------------------------
               // BALANCE CARD
               // -----------------------------
               Container(
@@ -269,19 +309,26 @@ class HomePage extends ConsumerWidget {
 
               // categories based on expenses
               Column(
-                children: ref
-                    .watch(expensesByCategoryProvider)
-                    .entries
-                    .map((entry) {
-                  final category = entry.key;
-                  final spentPHP = entry.value.toDouble();
-                  final spentConverted = convertFromPHP(spentPHP);
+                children: () {
+                  final categoriesData = ref.watch(expensesByCategoryProvider);
+                  
+                  // Convert to list and sort by spending amount (highest first)
+                  final sortedCategories = categoriesData.entries
+                      .map((entry) => MapEntry(entry.key, entry.value.toDouble()))
+                      .toList()
+                      ..sort((a, b) => b.value.compareTo(a.value));
 
-                  return _categoryCard(
-                    category: category,
-                    spent: spentConverted,
-                  );
-                }).toList(),
+                  return sortedCategories.map((entry) {
+                    final category = entry.key;
+                    final spentPHP = entry.value;
+                    final spentConverted = convertFromPHP(spentPHP);
+
+                    return _categoryCard(
+                      category: category,
+                      spent: spentConverted,
+                    );
+                  }).toList();
+                }(),
               ),
 
               const SizedBox(height: 28),
@@ -382,6 +429,65 @@ class HomePage extends ConsumerWidget {
               style: const TextStyle(color: Colors.white, fontSize: 16)),
           Text("${spent.toStringAsFixed(2)}",
               style: const TextStyle(color: Colors.greenAccent)),
+        ],
+      ),
+    );
+  }
+
+  // Helper function to convert rates based on selected currency
+  double _convertRate(double phpRate, String targetCurrency, Map<String, num> rates) {
+    if (targetCurrency == "PHP") {
+      return phpRate;
+    }
+    
+    // Convert from PHP to target currency
+    final targetRate = (rates[targetCurrency] ?? 1.0).toDouble();
+    return phpRate / targetRate;
+  }
+
+  // Currency rate card widget
+  Widget _rateCard({
+    required String currency,
+    required double rate,
+    required String selectedCurrency,
+  }) {
+    // Get currency symbol
+    String getCurrencySymbol(String curr) {
+      switch (curr) {
+        case 'USD': return '\$';
+        case 'EUR': return '€';
+        case 'GBP': return '£';
+        case 'JPY': return '¥';
+        case 'PHP': return '₱';
+        default: return curr;
+      }
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A2E23),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            currency,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "${getCurrencySymbol(selectedCurrency)}${rate.toStringAsFixed(2)}",
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );

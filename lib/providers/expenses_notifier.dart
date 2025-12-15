@@ -5,8 +5,24 @@ import '../mock/mock_expenses.dart';
 class ExpensesNotifier extends StateNotifier<List<Expense>> {
   ExpensesNotifier() : super(List.from(mockExpenses));
 
-  void addExpense(Expense e) {
-    state = [...state, e];
+  void addExpense(Expense expense) {
+    state = [...state, expense];
+    
+    // If expense has splits, update each category separately
+    if (expense.splits != null && expense.splits!.isNotEmpty) {
+      // Process splits - each category should be updated with its split amount
+      for (final entry in expense.splits!.entries) {
+        final category = entry.key;
+        final amount = entry.value;
+        print('Processing split: $category = $amount'); // Debug
+        
+        // Update budget or category tracking for each split
+        // Make sure this processes each category correctly
+      }
+    } else {
+      // Process single category expense
+      print('Processing single expense: ${expense.category} = ${expense.amount}');
+    }
   }
 
   void updateExpense(Expense updated) {

@@ -34,7 +34,8 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
   @override
   void initState() {
     super.initState();
-    _splitRows.add(_SplitRow(category: "Groceries"));
+    // Don't initialize with hardcoded category - do it in build method
+    // _splitRows.add(_SplitRow(category: "Groceries"));
   }
 
   @override
@@ -57,8 +58,38 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
     }
   }
 
+  // Helper method to get categories
+  List<String> _getCategories() {
+    final budgets = ref.read(budgetNotifierProvider);
+    return budgets.keys.isNotEmpty
+        ? budgets.keys.toSet().toList()
+        : [
+            "Groceries",
+            "Transport",
+            "Dining", 
+            "Shopping",
+            "Bills",
+            "Fun",
+            "Health",
+            "Subscriptions",
+            "Other"
+          ];
+  }
+
   void _addSplitRow() {
-    setState(() => _splitRows.add(_SplitRow(category: "Other")));
+    final categories = _getCategories();
+    
+    // Use the first available category or find one not already used
+    String newCategory = categories.first;
+    for (String cat in categories) {
+      bool isUsed = _splitRows.any((row) => row.category == cat);
+      if (!isUsed) {
+        newCategory = cat;
+        break;
+      }
+    }
+    
+    setState(() => _splitRows.add(_SplitRow(category: newCategory)));
   }
 
   void _removeSplitRow(int index) {
@@ -71,55 +102,64 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
   void _save() {
     if (!_formKey.currentState!.validate()) return;
 
-    final currency = ref.read(selectedCurrencyProvider);
-    final category = _selectedCategory ?? "Other";
+  final currency = ref.read(selectedCurrencyProvider);
+  final category = _selectedCategory ?? "Other";
 
-    double? amount =
-        double.tryParse(_amountController.text.replaceAll(",", ""));
+  double? amount = double.tryParse(_amountController.text.replaceAll(",", ""));
 
-    Map<String, double>? splits;
+  Map<String, double>? splits;
 
-    if (_useSplits) {
-      splits = {};
+  if (_useSplits) {
+    splits = {};
 
-      for (final row in _splitRows) {
-        final double? v = double.tryParse(row.controller.text.trim());
-        if (v != null && v > 0) splits[row.category] = v;
-      }
-
-      if (splits.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please enter at least one split.")),
-        );
-        return;
-      }
-
-      amount ??= splits.values.fold<double>(0, (a, b) => a + b);
-    } else {
-      if (amount == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Enter a valid amount")),
-        );
-        return;
+    for (final row in _splitRows) {
+      final double? v = double.tryParse(row.controller.text.trim());
+      if (v != null && v > 0) {
+        print('Adding split: ${row.category} = $v'); // Debug print
+        splits[row.category] = v;
       }
     }
 
-    final expense = Expense(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      amount: amount,
-      category: category,
-      date: _selectedDate,
-      currency: currency,
-      note: _noteController.text.isEmpty ? null : _noteController.text,
-      hasReceipt: _hasReceipt,
-      isRecurring: _isRecurring,
-      splits: splits,
-      recurrenceIntervalMonths: _recurrenceMonths,
-    );
+    if (splits.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter at least one split.")),
+      );
+      return;
+    }
 
-    // save the expense
-    ref.read(expensesNotifierProvider.notifier).addExpense(expense);
+    amount ??= splits.values.fold<double>(0, (a, b) => a + b);
+  } else {
+    if (amount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Enter a valid amount")),
+      );
+      return;
+    }
+  }
 
+  print('Final splits: $splits');
+
+      print('Final splits: $splits');
+      print('Expense category (main): $category');
+      print('Expense amount: $amount');
+
+      final expense = Expense(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        amount: amount,
+        category: category,
+        date: _selectedDate,
+        currency: currency,
+        note: _noteController.text.isEmpty ? null : _noteController.text,
+        hasReceipt: _hasReceipt,
+        isRecurring: _isRecurring,
+        splits: splits,
+        recurrenceIntervalMonths: _recurrenceMonths,
+      );
+
+      print('Created expense with splits: ${expense.splits}');
+
+  // save the expense
+  ref.read(expensesNotifierProvider.notifier).addExpense(expense);
     // save recurring template + next-month auto creation
     if (_isRecurring) {
       ref
@@ -134,7 +174,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
   Widget build(BuildContext context) {
     final budgets = ref.watch(budgetNotifierProvider);
     final categories = budgets.keys.isNotEmpty
-        ? budgets.keys.toList()
+        ? budgets.keys.toSet().toList()
         : [
             "Groceries",
             "Transport",
@@ -146,6 +186,24 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
             "Subscriptions",
             "Other"
           ];
+
+    // Only initialize if absolutely empty and splits are enabled
+    if (_splitRows.isEmpty && categories.isNotEmpty && _useSplits) {
+      _splitRows.add(_SplitRow(category: categories.first));
+    }
+
+    // Remove the automatic category validation that resets to first category
+    // Only validate if a category doesn't exist anymore
+    // for (var row in _splitRows) {
+    //   if (!categories.contains(row.category)) {
+    //     // Find a different category instead of always using first
+    //     final availableCategory = categories.firstWhere(
+    //       (cat) => !_splitRows.any((existingRow) => existingRow.category == cat),
+    //       orElse: () => categories.first,
+    //     );
+    //     row.category = availableCategory;
+    //   }
+    // }
 
     _selectedCategory ??= categories.first;
 
@@ -202,22 +260,32 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
 
               const SizedBox(height: 16),
 
-              // AMOUNT
-              if (!_useSplits)
-                TextFormField(
-                  controller: _amountController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _input("Amount"),
-                  validator: (v) {
-                    if (!_useSplits &&
-                        (v == null || double.tryParse(v) == null)) {
-                      return "Enter a valid number";
+              // AMOUNT - Always show, it's the total amount to split
+              TextFormField(
+                controller: _amountController,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(color: Colors.white),
+                decoration: _input(_useSplits ? "Total Amount to Split" : "Amount"),
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return "Enter an amount";
+                  }
+                  if (double.tryParse(v) == null) {
+                    return "Enter a valid number";
+                  }
+                  if (_useSplits) {
+                    final totalAmount = double.tryParse(v) ?? 0;
+                    final splitTotal = _splitRows.fold<double>(0, (sum, row) {
+                      return sum + (double.tryParse(row.controller.text) ?? 0);
+                    });
+                    if (splitTotal > totalAmount) {
+                      return "Split amounts exceed total";
                     }
-                    return null;
-                  },
-                ),
+                  }
+                  return null;
+                },
+              ),
 
               const SizedBox(height: 12),
 
@@ -245,15 +313,31 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                             Expanded(
                               flex: 2,
                               child: DropdownButtonFormField<String>(
-                                value: _splitRows[i].category,
+                                value: categories.contains(_splitRows[i].category) 
+                                    ? _splitRows[i].category 
+                                    : categories.first, // Only fallback if category doesn't exist
                                 dropdownColor: const Color(0xFF12291D),
                                 items: categories
-                                    .map((c) =>
-                                        DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(color: Colors.white))))
+                                    .map((c) => DropdownMenuItem(
+                                          value: c, 
+                                          child: Text(c, style: const TextStyle(color: Colors.white))
+                                        ))
                                     .toList(),
-                                onChanged: (v) =>
-                                    setState(() => _splitRows[i].category = v!),
+                                onChanged: (v) {
+                                  if (v != null) {
+                                    setState(() {
+                                      _splitRows[i].category = v;
+                                      print('Split row $i category changed to: $v'); // Debug print
+                                    });
+                                  }
+                                },
                                 decoration: _input("Category"),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Select a category';
+                                  }
+                                  return null;
+                                },
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -294,19 +378,21 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
               // CATEGORY + DATE
               Row(
                 children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedCategory,
-                      items: categories
-                          .map((c) =>
-                              DropdownMenuItem(value: c, child: Text(c)))
-                          .toList(),
-                      dropdownColor: const Color(0xFF12291D),
-                      onChanged: (v) => setState(() => _selectedCategory = v),
-                      decoration: _input("Category"),
+                  // Only show category dropdown when NOT using splits
+                  if (!_useSplits)
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedCategory,
+                        items: categories
+                            .map((c) =>
+                                DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(color: Colors.white))))
+                            .toList(),
+                        dropdownColor: const Color(0xFF12291D),
+                        onChanged: (v) => setState(() => _selectedCategory = v),
+                        decoration: _input("Category"),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
+                  if (!_useSplits) const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: _pickDate,
                     icon: const Icon(Icons.calendar_today),
@@ -338,7 +424,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                     style: TextStyle(color: Colors.white)),
                 activeThumbColor: Colors.greenAccent,
                 activeTrackColor:
-                    Colors.greenAccent.withValues(alpha: 0.4),
+                    Colors.greenAccent.withAlpha(102),
               ),
 
               // RECURRING
@@ -349,7 +435,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                     style: TextStyle(color: Colors.white)),
                 activeThumbColor: Colors.greenAccent,
                 activeTrackColor:
-                    Colors.greenAccent.withValues(alpha: 0.4),
+                    Colors.greenAccent.withAlpha(102),
               ),
 
               if (_isRecurring)
