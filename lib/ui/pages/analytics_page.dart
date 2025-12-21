@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:expense_tracker/ui/widgets/stat_card.dart';
 
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
@@ -26,31 +27,6 @@ class AnalyticsPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // ===================== PIE CHART =====================
-            const Text(
-              "Expenses by Category",
-              style: TextStyle(fontSize: 18, color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF12291D),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              height: 260,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 50,
-                  sections: _buildPieSections(categoryTotals),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 40),
 
             // ===================== LINE CHART =====================
             const Text(
@@ -83,6 +59,117 @@ class AnalyticsPage extends ConsumerWidget {
                 ),
               ),
             ),
+
+            const SizedBox(height: 16),
+
+            Row(
+              children: const [
+                Expanded(
+                  child: StatCard(
+                    label: 'AVG. DAILY',
+                    value: '\$79.03',
+                    changeText: '↑ 2%',
+                    changeColor: Colors.greenAccent,
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: StatCard(
+                    label: 'PROJECTED',
+                    value: '\$3,100',
+                    subtitle: 'Est. End',
+                    changeText: '',
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: StatCard(
+                    label: 'SAVED',
+                    value: '\$120',
+                    changeText: '↑ 8%',
+                    changeColor: Colors.greenAccent,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10231A),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A3325),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.compare_arrows_rounded,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Compare to previous month',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  StatefulBuilder(
+                    builder: (context, setState) {
+                      bool isOn = false;
+                      return Switch(
+                        value: isOn,
+                        activeColor: Colors.white,
+                        activeTrackColor: Colors.greenAccent,
+                        onChanged: (val) {
+                          setState(() => isOn = val);
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+
+            const SizedBox(height: 40),
+
+
+            // ===================== PIE CHART =====================
+            const Text(
+              "Expenses by Category",
+              style: TextStyle(fontSize: 18, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF12291D),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              height: 260,
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 50,
+                  sections: _buildPieSections(categoryTotals),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
