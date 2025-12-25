@@ -21,3 +21,22 @@ double expenseTotalForCategoryInBaseCurrency(
     return sum;
   });
 }
+
+Map<String, double> expensesByCategoryInBaseCurrency(
+  List<Expense> expenses,
+) {
+  final Map<String, double> totals = {};
+
+  for (final e in expenses) {
+    if (e.splits != null && e.splits!.isNotEmpty) {
+      e.splits!.forEach((category, amount) {
+        totals[category] = (totals[category] ?? 0) + amount;
+      });
+    } else {
+      totals[e.category] = (totals[e.category] ?? 0) + e.amount;
+    }
+  }
+
+  return totals; 
+}
+

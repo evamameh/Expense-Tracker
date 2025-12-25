@@ -1,23 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../expenses_notifier.dart';
+import 'selected_month_provider.dart';
+import 'date_range_provider.dart';
+import '../../core/expense/expense_totals.dart';
 
 final expensesByCategoryProvider = Provider<Map<String, double>>((ref) {
   final expenses = ref.watch(expensesNotifierProvider);
-  final Map<String, double> categoryTotals = {};
+  final selectedMonth = ref.watch(selectedMonthProvider);
+  final range = ref.watch(dateRangeProvider);
 
-  for (final expense in expenses) {
-    if (expense.splits != null && expense.splits!.isNotEmpty) {
-      for (final entry in expense.splits!.entries) {
-        final category = entry.key;
-        final amount = entry.value;
-        categoryTotals[category] = (categoryTotals[category] ?? 0) + amount;
-      }
-    } else {
-      final category = expense.category;
-      final amount = expense.amount;
-      categoryTotals[category] = (categoryTotals[category] ?? 0) + amount;
+  final filteredExpenses = expenses.where((e) {
+    if (range != null) {
+      return e.date.isAfter(range.start.subtract(const Duration(days: 1))) &&
+             e.date.isBefore(range.end.add(const Duration(days: 1)));
     }
-  }
 
-  return categoryTotals;
+    // fallback to month-based filtering
+    return e.date.year == selectedMonth.year &&
+           e.date.month == selectedMonth.month;
+  }).toList();
+
+  return expensesByCategoryInBaseCurrency(filteredExpenses);
 });

@@ -6,6 +6,7 @@ import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
 
+
 class AnalyticsPage extends ConsumerWidget {
   const AnalyticsPage({super.key});
 

@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../providers/computed/monthly_total_provider.dart';
 import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
 import '../../providers/computed/selected_month_provider.dart';
+import '../../providers/computed/date_range_provider.dart';
 import '../../providers/computed/expenses_by_category.dart';
 
 import '../../core/currency/currency_converter.dart';
-import '../../core/expense/expense_totals.dart';
 
 import '../widgets/progress_bar.dart';
 import '../widgets/transaction_item.dart';
@@ -22,27 +23,22 @@ class HomePage extends ConsumerWidget {
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
     final selectedMonth = ref.watch(selectedMonthProvider);
+    final dateRange = ref.watch(dateRangeProvider);
 
-    const monthlyBudgetPHP = 250000.0;
+    const monthlyBudgetPHP = 50000.0;
 
-    // 🔹 TOTAL SPENT (split-aware + centralized conversion)
-    final totalSpent = expenses
-        .where((e) =>
-            e.date.year == selectedMonth.year &&
-            e.date.month == selectedMonth.month)
-        .fold<double>(
-          0.0,
-          (sum, e) {
-            final baseAmount = expenseTotalInBaseCurrency(e);
-            return sum +
-                CurrencyConverter.convert(
-                  baseAmount,
-                  e.currency,
-                  selectedCurrency,
-                  rates,
-                );
-          },
-        );
+    // 🔹 FILTER EXPENSES (date range > month fallback)
+    final filteredExpenses = expenses.where((e) {
+      if (dateRange != null) {
+        return !e.date.isBefore(dateRange.start) &&
+            !e.date.isAfter(dateRange.end);
+      }
+
+      return e.date.year == selectedMonth.year &&
+          e.date.month == selectedMonth.month;
+    }).toList();
+
+    final totalSpent = ref.watch(monthlyTotalProvider);
 
     // 🔹 Monthly budget converted
     final monthlyBudget = CurrencyConverter.convert(
@@ -54,6 +50,12 @@ class HomePage extends ConsumerWidget {
 
     final remaining = monthlyBudget - totalSpent;
 
+    // 🔹 Top categories (already filtered by provider)
+    final categoriesData = ref.watch(expensesByCategoryProvider);
+
+    final sortedCategories = categoriesData.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
       body: SafeArea(
@@ -62,37 +64,51 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 Month Selector
+              // 🔹 Date selector (range)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
-                  final picked = await showDatePicker(
+                  final picked = await showDateRangePicker(
                     context: context,
-                    initialDate: selectedMonth,
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2035),
+                    initialDateRange: dateRange,
                   );
+
                   if (picked != null) {
-                    ref.read(selectedMonthProvider.notifier).state =
-                        DateTime(picked.year, picked.month);
+                    ref.read(dateRangeProvider.notifier).state = picked;
                   }
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "${_monthName(selectedMonth.month)} ${selectedMonth.year}",
+                      dateRange == null
+                          ? "${_monthName(selectedMonth.month)} ${selectedMonth.year}"
+                          : "${dateRange.start.month}/${dateRange.start.day} - "
+                              "${dateRange.end.month}/${dateRange.end.day}",
                       style:
                           const TextStyle(fontSize: 22, color: Colors.white),
                     ),
-                    const Icon(Icons.arrow_drop_down, color: Colors.white),
+                    const Icon(Icons.date_range, color: Colors.white),
                   ],
                 ),
               ),
 
+              if (dateRange != null)
+                TextButton(
+                  onPressed: () {
+                    ref.read(dateRangeProvider.notifier).state = null;
+                  },
+                  child: const Text(
+                    "Clear date range",
+                    style: TextStyle(color: Colors.greenAccent),
+                  ),
+                ),
+
               const SizedBox(height: 20),
 
-              // 🔹 Currency Selector
+              // 🔹 Currency selector
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -130,7 +146,7 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // 🔹 Budget Card
+              // 🔹 Budget card
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -146,12 +162,14 @@ class HomePage extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.greenAccent,
+                          color: remaining >= 0
+                              ? Colors.greenAccent
+                              : Colors.redAccent,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          "Safe",
-                          style: TextStyle(
+                        child: Text(
+                          remaining >= 0 ? "Safe" : "Over Budget",
+                          style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.bold),
                         ),
@@ -179,7 +197,8 @@ class HomePage extends ConsumerWidget {
                     const SizedBox(height: 18),
 
                     ProgressBar(
-                      value: (totalSpent / monthlyBudget).clamp(0.0, 1.0),
+                      value:
+                          (totalSpent / monthlyBudget).clamp(0.0, 1.0),
                       color: Colors.greenAccent,
                     ),
 
@@ -195,7 +214,7 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 28),
 
-              // 🔹 Top Categories (UNCHANGED logic)
+              // 🔹 Top Categories
               const Text(
                 "Top Categories",
                 style: TextStyle(
@@ -207,28 +226,20 @@ class HomePage extends ConsumerWidget {
               const SizedBox(height: 16),
 
               Column(
-                children: () {
-                  final categoriesData =
-                      ref.watch(expensesByCategoryProvider);
+                children: sortedCategories.map((entry) {
+                  final spentConverted = CurrencyConverter.convert(
+                    entry.value,
+                    "PHP",
+                    selectedCurrency,
+                    rates,
+                  );
 
-                  final sorted = categoriesData.entries.toList()
-                    ..sort((a, b) => b.value.compareTo(a.value));
-
-                  return sorted.map((entry) {
-                    final spentConverted = CurrencyConverter.convert(
-                      entry.value,
-                      "PHP",
-                      selectedCurrency,
-                      rates,
-                    );
-
-                    return _categoryCard(
-                      category: entry.key,
-                      spent: spentConverted,
-                      currency: selectedCurrency,
-                    );
-                  }).toList();
-                }(),
+                  return _categoryCard(
+                    category: entry.key,
+                    spent: spentConverted,
+                    currency: selectedCurrency,
+                  );
+                }).toList(),
               ),
 
               const SizedBox(height: 28),
@@ -245,7 +256,7 @@ class HomePage extends ConsumerWidget {
               const SizedBox(height: 12),
 
               Column(
-                children: expenses.reversed
+                children: filteredExpenses.reversed
                     .take(5)
                     .map((e) => TransactionItem(expense: e))
                     .toList(),

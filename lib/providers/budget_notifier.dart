@@ -13,9 +13,9 @@ final budgetNotifierProvider =
     "Dining": Budget(5000),
     "Fun": Budget(3000),
     "Shopping": Budget(2500),
-    "Bills": Budget(3500),
+    "Bills": Budget(4000),
     "Subscriptions": Budget(2000),
-    "Health": Budget(2500),
+    "Health": Budget(3000),
   });
 });
 
