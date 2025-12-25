@@ -5,6 +5,9 @@ import 'package:expense_tracker/ui/widgets/stat_card.dart';
 import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
+import '../widgets/analytics_line_chart.dart';
+import '../widgets/analytics_pie_chart.dart';
+
 
 
 class AnalyticsPage extends ConsumerWidget {
@@ -38,30 +41,7 @@ class AnalyticsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF12291D),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              height: 280,
-              child: LineChart(
-                LineChartData(
-                  gridData: const FlGridData(show: false),
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      color: Colors.greenAccent,
-                      barWidth: 3,
-                      isCurved: true,
-                      spots: _buildLineSpots(trendTotals),
-                      dotData: const FlDotData(show: false),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            AnalyticsLineChart(trendTotals: trendTotals),
 
             const SizedBox(height: 16),
 
@@ -154,62 +134,12 @@ class AnalyticsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF12291D),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              height: 260,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 50,
-                  sections: _buildPieSections(categoryTotals),
-                ),
-              ),
-            ),
+            AnalyticsPieChart(categoryTotals: categoryTotals),
 
             const SizedBox(height: 40),
           ],
         ),
       ),
     );
-  }
-
-  List<PieChartSectionData> _buildPieSections(Map<String, double> totals) {
-    final colors = [
-      Colors.greenAccent,
-      Colors.orangeAccent,
-      Colors.lightBlueAccent,
-      Colors.pinkAccent,
-      Colors.yellowAccent,
-    ];
-
-    int index = 0;
-
-    return totals.entries.map((entry) {
-      final section = PieChartSectionData(
-        color: colors[index % colors.length],
-        value: entry.value,
-        radius: 60,
-        title: entry.key,
-        titleStyle: const TextStyle(
-          color: Colors.black,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      index++;
-      return section;
-    }).toList();
-  }
-
-  List<FlSpot> _buildLineSpots(Map<int, double> data) {
-    final sortedKeys = data.keys.toList()..sort();
-
-    return sortedKeys.map((day) {
-      return FlSpot(day.toDouble(), data[day] ?? 0);
-    }).toList();
   }
 }
