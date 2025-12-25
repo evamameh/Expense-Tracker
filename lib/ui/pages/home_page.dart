@@ -83,11 +83,10 @@ class HomePage extends ConsumerWidget {
                 children: [
                   Text(
                     dateRange == null
-                        ? "December 2025"
-                        : "${dateRange.start.month}/${dateRange.start.day}"
-                            " - ${dateRange.end.month}/${dateRange.end.day}",
-                    style:
-                        const TextStyle(fontSize: 22, color: Colors.white),
+                        ? 'Select a date range'
+                        : '${dateRange.start.month}/${dateRange.start.day}'
+                          ' - ${dateRange.end.month}/${dateRange.end.day}',
+                    style: const TextStyle(fontSize: 22, color: Colors.white),
                   ),
                   Row(
                     children: [
