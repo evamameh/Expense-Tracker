@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../expenses_notifier.dart';
 import '../currency/selected_currency.dart';
 import '../currency/currency_rates.dart';
-import 'selected_month_provider.dart';
 import 'date_range_provider.dart';
 
 import '../../core/currency/currency_converter.dart';
@@ -13,18 +12,14 @@ final monthlyTotalProvider = Provider<double>((ref) {
   final expenses = ref.watch(expensesNotifierProvider);
   final selectedCurrency = ref.watch(selectedCurrencyProvider);
   final rates = ref.watch(currencyRatesProvider);
-  final selectedMonth = ref.watch(selectedMonthProvider);
   final dateRange = ref.watch(dateRangeProvider);
 
-  final filteredExpenses = expenses.where((e) {
-    if (dateRange != null) {
-      return !e.date.isBefore(dateRange.start) &&
-             !e.date.isAfter(dateRange.end);
-    }
+  if (dateRange == null) return 0.0;
 
-    return e.date.year == selectedMonth.year &&
-           e.date.month == selectedMonth.month;
-  });
+  final filteredExpenses = expenses.where((e) =>
+    !e.date.isBefore(dateRange.start) &&
+    !e.date.isAfter(dateRange.end)
+  );
 
   return filteredExpenses.fold<double>(
     0.0,

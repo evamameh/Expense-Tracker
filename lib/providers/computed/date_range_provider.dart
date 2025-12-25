@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final dateRangeProvider = StateProvider<DateTimeRange?>((ref) {
-  return null; 
-});
+final dateRangeProvider = StateProvider<DateTimeRange?>((ref) => null);
