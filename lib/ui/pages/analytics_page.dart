@@ -3,12 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:expense_tracker/ui/widgets/stat_card.dart';
 import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
+
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
-import '../widgets/analytics_line_chart.dart';
-import '../widgets/analytics_pie_chart.dart';
-
-
 
 class AnalyticsPage extends ConsumerWidget {
   const AnalyticsPage({super.key});
@@ -35,13 +32,62 @@ class AnalyticsPage extends ConsumerWidget {
             TimePeriodSelector(),
             const SizedBox(height: 24),
 
+            // ===================== LINE CHART =====================
             const Text(
               "Daily Spending Trend",
               style: TextStyle(fontSize: 18, color: Colors.white),
             ),
             const SizedBox(height: 16),
 
-            AnalyticsLineChart(trendTotals: trendTotals),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF12291D),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              height: 280,
+              child: LineChart(
+                LineChartData(
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+
+                  titlesData: FlTitlesData(
+                    leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 24,
+                        interval: 1, // show every 5 days; adjust as needed
+                        getTitlesWidget: (value, meta) {
+                          final day = value.toInt();
+                          if (day <= 0) return const SizedBox.shrink();
+                          return Text(
+                            day.toString(),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  lineBarsData: [
+                    LineChartBarData(
+                      color: Colors.greenAccent,
+                      barWidth: 3,
+                      isCurved: true,
+                      spots: _buildLineSpots(trendTotals),
+                      dotData: const FlDotData(show: false),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
             const SizedBox(height: 16),
 
@@ -113,7 +159,7 @@ class AnalyticsPage extends ConsumerWidget {
                       bool isOn = false;
                       return Switch(
                         value: isOn,
-                        activeThumbColor: Colors.white,
+                        activeColor: Colors.white,
                         activeTrackColor: Colors.greenAccent,
                         onChanged: (val) {
                           setState(() => isOn = val);
@@ -128,18 +174,72 @@ class AnalyticsPage extends ConsumerWidget {
 
             const SizedBox(height: 40),
 
+
+            // ===================== PIE CHART =====================
             const Text(
               "Expenses by Category",
               style: TextStyle(fontSize: 18, color: Colors.white),
             ),
             const SizedBox(height: 16),
 
-            AnalyticsPieChart(categoryTotals: categoryTotals),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF12291D),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              height: 260,
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 50,
+                  sections: _buildPieSections(categoryTotals),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 40),
           ],
         ),
       ),
     );
+  }
+
+  // ================= PIE SECTIONS =================
+  List<PieChartSectionData> _buildPieSections(Map<String, double> totals) {
+    final colors = [
+      Colors.greenAccent,
+      Colors.orangeAccent,
+      Colors.lightBlueAccent,
+      Colors.pinkAccent,
+      Colors.yellowAccent,
+    ];
+
+    int index = 0;
+
+    return totals.entries.map((entry) {
+      final section = PieChartSectionData(
+        color: colors[index % colors.length],
+        value: entry.value,
+        radius: 60,
+        title: entry.key,
+        titleStyle: const TextStyle(
+          color: Colors.black,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+      index++;
+      return section;
+    }).toList();
+  }
+
+  // ================= LINE CHART SPOTS =================
+  List<FlSpot> _buildLineSpots(Map<int, double> data) {
+    final sortedKeys = data.keys.toList()..sort();
+
+    return sortedKeys.map((day) {
+      return FlSpot(day.toDouble(), data[day] ?? 0);
+    }).toList();
   }
 }
