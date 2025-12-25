@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/computed/monthly_total.dart';
-import '../../providers/computed/expenses_by_category.dart';
+
 import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
 import '../../providers/computed/selected_month_provider.dart';
+import '../../providers/computed/expenses_by_category.dart';
+
+import '../../core/currency/currency_converter.dart';
+import '../../core/expense/expense_totals.dart';
+
 import '../widgets/progress_bar.dart';
 import '../widgets/transaction_item.dart';
 
@@ -21,25 +25,34 @@ class HomePage extends ConsumerWidget {
 
     const monthlyBudgetPHP = 250000.0;
 
-    double convertToPHP(double amount, String fromCurrency) {
-      final rate = (rates[fromCurrency] ?? 1.0).toDouble();
-      return amount * rate;
-    }
-
-    double convertFromPHP(double phpAmount) {
-      final rate = (rates[selectedCurrency] ?? 1.0).toDouble();
-      return phpAmount / rate;
-    }
-
-    final totalSpentPHP = expenses
+    // 🔹 TOTAL SPENT (split-aware + centralized conversion)
+    final totalSpent = expenses
         .where((e) =>
             e.date.year == selectedMonth.year &&
             e.date.month == selectedMonth.month)
-        .fold<double>(0.0, (sum, e) => sum + convertToPHP(e.amount, e.currency));
+        .fold<double>(
+          0.0,
+          (sum, e) {
+            final baseAmount = expenseTotalInBaseCurrency(e);
+            return sum +
+                CurrencyConverter.convert(
+                  baseAmount,
+                  e.currency,
+                  selectedCurrency,
+                  rates,
+                );
+          },
+        );
 
-    final totalSpent = convertFromPHP(totalSpentPHP);
-    final remaining = convertFromPHP(monthlyBudgetPHP - totalSpentPHP);
-    final monthlyBudgetConverted = convertFromPHP(monthlyBudgetPHP);
+    // 🔹 Monthly budget converted
+    final monthlyBudget = CurrencyConverter.convert(
+      monthlyBudgetPHP,
+      "PHP",
+      selectedCurrency,
+      rates,
+    );
+
+    final remaining = monthlyBudget - totalSpent;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
@@ -49,6 +62,7 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 🔹 Month Selector
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
@@ -57,20 +71,6 @@ class HomePage extends ConsumerWidget {
                     initialDate: selectedMonth,
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2035),
-                    helpText: "Select Month",
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.dark(
-                            primary: Colors.greenAccent,
-                            onPrimary: Colors.black,
-                            surface: Color(0xFF0B1C14),
-                            onSurface: Colors.white,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
                   );
                   if (picked != null) {
                     ref.read(selectedMonthProvider.notifier).state =
@@ -80,98 +80,57 @@ class HomePage extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          "${_monthName(selectedMonth.month)} ${selectedMonth.year}",
-                          style: const TextStyle(
-                              fontSize: 22, color: Colors.white),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.arrow_drop_down, color: Colors.white),
-                      ],
+                    Text(
+                      "${_monthName(selectedMonth.month)} ${selectedMonth.year}",
+                      style:
+                          const TextStyle(fontSize: 22, color: Colors.white),
                     ),
-                    const Icon(Icons.notifications_none, color: Colors.white),
+                    const Icon(Icons.arrow_drop_down, color: Colors.white),
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
 
+              // 🔹 Currency Selector
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: [
-                    for (final c in ["USD", "EUR", "GBP", "JPY", "PHP"])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: GestureDetector(
-                          onTap: () => ref
-                              .read(selectedCurrencyProvider.notifier)
-                              .state = c,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            decoration: BoxDecoration(
+                  children: ["USD", "EUR", "GBP", "JPY", "PHP"].map((c) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => ref
+                            .read(selectedCurrencyProvider.notifier)
+                            .state = c,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedCurrency == c
+                                ? Colors.greenAccent
+                                : const Color(0xFF1A2E23),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Text(
+                            c,
+                            style: TextStyle(
                               color: selectedCurrency == c
-                                  ? Colors.greenAccent
-                                  : const Color(0xFF1A2E23),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              c,
-                              style: TextStyle(
-                                color: selectedCurrency == c
-                                    ? Colors.black
-                                    : Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  ? Colors.black
+                                  : Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                  ],
+                    );
+                  }).toList(),
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF12291D),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Exchange Rates (to ${selectedCurrency})",
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: rates.entries
-                          .where((entry) => entry.key != selectedCurrency) 
-                          .map((entry) => _rateCard(
-                                currency: entry.key,
-                                rate: _convertRate(entry.value.toDouble(), selectedCurrency, rates),
-                                selectedCurrency: selectedCurrency,
-                              ))
-                          .toList(),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
+              // 🔹 Budget Card
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -193,12 +152,12 @@ class HomePage extends ConsumerWidget {
                         child: const Text(
                           "Safe",
                           style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 6),
 
                     Text(
@@ -213,14 +172,14 @@ class HomePage extends ConsumerWidget {
                     const SizedBox(height: 6),
 
                     Text(
-                      "/ ${monthlyBudgetConverted.toStringAsFixed(2)} $selectedCurrency",
+                      "/ ${monthlyBudget.toStringAsFixed(2)} $selectedCurrency",
                       style: const TextStyle(color: Colors.white54),
                     ),
 
                     const SizedBox(height: 18),
 
                     ProgressBar(
-                      value: (totalSpentPHP / monthlyBudgetPHP).clamp(0, 1),
+                      value: (totalSpent / monthlyBudget).clamp(0.0, 1.0),
                       color: Colors.greenAccent,
                     ),
 
@@ -234,30 +193,9 @@ class HomePage extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              Row(
-                children: [
-                  _summaryCard(
-                    title: "Total Spent",
-                    value:
-                        "${totalSpent.toStringAsFixed(2)} $selectedCurrency",
-                    icon: Icons.trending_down,
-                    iconColor: Colors.redAccent,
-                  ),
-                  const SizedBox(width: 16),
-                  _summaryCard(
-                    title: "Total Saved",
-                    value:
-                        "${remaining.toStringAsFixed(2)} $selectedCurrency",
-                    icon: Icons.trending_up,
-                    iconColor: Colors.greenAccent,
-                  ),
-                ],
-              ),
-
               const SizedBox(height: 28),
 
+              // 🔹 Top Categories (UNCHANGED logic)
               const Text(
                 "Top Categories",
                 style: TextStyle(
@@ -265,24 +203,29 @@ class HomePage extends ConsumerWidget {
                     fontSize: 18,
                     fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 16),
 
               Column(
                 children: () {
-                  final categoriesData = ref.watch(expensesByCategoryProvider);
-                  final sortedCategories = categoriesData.entries
-                      .map((entry) => MapEntry(entry.key, entry.value.toDouble()))
-                      .toList()
-                      ..sort((a, b) => b.value.compareTo(a.value));
+                  final categoriesData =
+                      ref.watch(expensesByCategoryProvider);
 
-                  return sortedCategories.map((entry) {
-                    final category = entry.key;
-                    final spentPHP = entry.value;
-                    final spentConverted = convertFromPHP(spentPHP);
+                  final sorted = categoriesData.entries.toList()
+                    ..sort((a, b) => b.value.compareTo(a.value));
+
+                  return sorted.map((entry) {
+                    final spentConverted = CurrencyConverter.convert(
+                      entry.value,
+                      "PHP",
+                      selectedCurrency,
+                      rates,
+                    );
 
                     return _categoryCard(
-                      category: category,
+                      category: entry.key,
                       spent: spentConverted,
+                      currency: selectedCurrency,
                     );
                   }).toList();
                 }(),
@@ -290,6 +233,7 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 28),
 
+              // 🔹 Recent Transactions
               const Text(
                 "Recent Transactions",
                 style: TextStyle(
@@ -297,6 +241,7 @@ class HomePage extends ConsumerWidget {
                     fontSize: 18,
                     fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 12),
 
               Column(
@@ -308,6 +253,32 @@ class HomePage extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _categoryCard({
+    required String category,
+    required double spent,
+    required String currency,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF12291D),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(category,
+              style: const TextStyle(color: Colors.white, fontSize: 16)),
+          Text(
+            "${spent.toStringAsFixed(2)} $currency",
+            style: const TextStyle(color: Colors.greenAccent),
+          ),
+        ],
       ),
     );
   }
@@ -328,115 +299,5 @@ class HomePage extends ConsumerWidget {
       "December"
     ];
     return names[m - 1];
-  }
-
-  Widget _summaryCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF12291D),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: iconColor, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(title, style: const TextStyle(color: Colors.white70)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _categoryCard({
-    required String category,
-    required double spent,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12291D),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(category,
-              style: const TextStyle(color: Colors.white, fontSize: 16)),
-          Text("${spent.toStringAsFixed(2)}",
-              style: const TextStyle(color: Colors.greenAccent)),
-        ],
-      ),
-    );
-  }
-
-  double _convertRate(double phpRate, String targetCurrency, Map<String, num> rates) {
-    if (targetCurrency == "PHP") {
-      return phpRate;
-    }
-    
-    final targetRate = (rates[targetCurrency] ?? 1.0).toDouble();
-    return phpRate / targetRate;
-  }
-
-  Widget _rateCard({
-    required String currency,
-    required double rate,
-    required String selectedCurrency,
-  }) {
-    String getCurrencySymbol(String curr) {
-      switch (curr) {
-        case 'USD': return '\$';
-        case 'EUR': return '€';
-        case 'GBP': return '£';
-        case 'JPY': return '¥';
-        case 'PHP': return '₱';
-        default: return curr;
-      }
-    }
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A2E23),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            currency,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "${getCurrencySymbol(selectedCurrency)}${rate.toStringAsFixed(2)}",
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

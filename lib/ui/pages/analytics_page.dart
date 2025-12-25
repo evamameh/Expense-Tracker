@@ -132,7 +132,7 @@ class AnalyticsPage extends ConsumerWidget {
                       bool isOn = false;
                       return Switch(
                         value: isOn,
-                        activeColor: Colors.white,
+                        activeThumbColor: Colors.white,
                         activeTrackColor: Colors.greenAccent,
                         onChanged: (val) {
                           setState(() => isOn = val);

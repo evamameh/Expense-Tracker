@@ -6,6 +6,9 @@ import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
 
+import '../../core/currency/currency_converter.dart';
+import '../../core/expense/expense_totals.dart';
+
 import '../widgets/progress_bar.dart';
 
 class BudgetPage extends ConsumerWidget {
@@ -18,16 +21,6 @@ class BudgetPage extends ConsumerWidget {
 
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
-
-    double toPHP(double amount, String from) {
-      final r = (rates[from] ?? 1.0).toDouble();
-      return amount * r;
-    }
-
-    double fromPHP(double amountPHP, String to) {
-      final r = (rates[to] ?? 1.0).toDouble();
-      return amountPHP / r;
-    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
@@ -48,39 +41,39 @@ class BudgetPage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
+              // 🔹 Currency selector
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: [
-                    for (final c in ["USD", "EUR", "GBP", "JPY", "PHP"])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: GestureDetector(
-                          onTap: () => ref
-                              .read(selectedCurrencyProvider.notifier)
-                              .state = c,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            decoration: BoxDecoration(
+                  children: ["USD", "EUR", "GBP", "JPY", "PHP"].map((c) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () => ref
+                            .read(selectedCurrencyProvider.notifier)
+                            .state = c,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedCurrency == c
+                                ? Colors.greenAccent
+                                : const Color(0xFF1A2E23),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Text(
+                            c,
+                            style: TextStyle(
                               color: selectedCurrency == c
-                                  ? Colors.greenAccent
-                                  : const Color(0xFF1A2E23),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              c,
-                              style: TextStyle(
-                                color: selectedCurrency == c
-                                    ? Colors.black
-                                    : Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  ? Colors.black
+                                  : Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                  ],
+                    );
+                  }).toList(),
                 ),
               ),
 
@@ -90,25 +83,30 @@ class BudgetPage extends ConsumerWidget {
                 child: ListView(
                   children: budgets.entries.map((entry) {
                     final category = entry.key;
-                    final limitPHP = entry.value.limit; 
 
-                    final spentPHP = expenses
-                        .where((e) => _affectsCategory(e, category))
-                        .fold<double>(0.0, (sum, e) {
-                      if (e.splits != null && e.splits!.containsKey(category)) {
-                        return sum +
-                            (e.splits![category] ?? 0.0) *
-                                (rates[e.currency] ?? 1.0);
-                      }
-                      return sum + toPHP(e.amount, e.currency);
-                    });
+                    // 🔹 Budget limit (stored in PHP)
+                    final limit = CurrencyConverter.convert(
+                      entry.value.limit,
+                      "PHP",
+                      selectedCurrency,
+                      rates,
+                    );
 
-                    final spent = fromPHP(spentPHP, selectedCurrency);
-                    final limit = fromPHP(limitPHP, selectedCurrency);
+                    // 🔹 Total spent for category (split-aware, base currency)
+                    final spentBase = expenseTotalForCategoryInBaseCurrency(
+                      expenses,
+                      category,
+                    );
 
-                    final percent = (limit == 0)
-                        ? 0.0
-                        : (spent / limit).clamp(0.0, 1.0);
+                    final spent = CurrencyConverter.convert(
+                      spentBase,
+                      "PHP",
+                      selectedCurrency,
+                      rates,
+                    );
+
+                    final percent =
+                        limit == 0 ? 0.0 : (spent / limit).clamp(0.0, 1.0);
 
                     final isOver = spent > limit;
 
@@ -123,12 +121,15 @@ class BudgetPage extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
                                 category,
                                 style: const TextStyle(
-                                    color: Colors.white, fontSize: 18),
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
                               ),
 
                               Row(
@@ -137,20 +138,30 @@ class BudgetPage extends ConsumerWidget {
                                     icon: const Icon(Icons.edit,
                                         color: Colors.white70),
                                     onPressed: () async {
-                                      final updated = await _editLimitDialog(
-                                          context,
-                                          category,
-                                          limit,
-                                          selectedCurrency);
+                                      final updated =
+                                          await _editLimitDialog(
+                                        context,
+                                        category,
+                                        limit,
+                                        selectedCurrency,
+                                      );
 
                                       if (updated != null) {
-                                        final newLimitPHP = updated *
-                                            (rates[selectedCurrency] ?? 1.0);
+                                        final newLimitPHP =
+                                            CurrencyConverter.convert(
+                                          updated,
+                                          selectedCurrency,
+                                          "PHP",
+                                          rates,
+                                        );
 
                                         ref
-                                            .read(budgetNotifierProvider.notifier)
+                                            .read(budgetNotifierProvider
+                                                .notifier)
                                             .updateLimit(
-                                                category, newLimitPHP);
+                                              category,
+                                              newLimitPHP,
+                                            );
                                       }
                                     },
                                   ),
@@ -162,13 +173,15 @@ class BudgetPage extends ConsumerWidget {
                                       color: isOver
                                           ? Colors.redAccent
                                           : Colors.greenAccent,
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius:
+                                          BorderRadius.circular(12),
                                     ),
                                     child: Text(
                                       isOver ? "Over Budget" : "Safe",
                                       style: TextStyle(
-                                        color:
-                                            isOver ? Colors.white : Colors.black,
+                                        color: isOver
+                                            ? Colors.white
+                                            : Colors.black,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -181,7 +194,7 @@ class BudgetPage extends ConsumerWidget {
                           const SizedBox(height: 12),
 
                           ProgressBar(
-                            value: percent, 
+                            value: percent,
                             color: Colors.greenAccent,
                           ),
 
@@ -210,13 +223,12 @@ class BudgetPage extends ConsumerWidget {
     );
   }
 
-  bool _affectsCategory(e, String category) {
-    if (e.splits != null && e.splits!.containsKey(category)) return true;
-    return e.category == category;
-  }
-
-  Future<double?> _editLimitDialog(BuildContext context, String category,
-      double current, String currency) {
+  Future<double?> _editLimitDialog(
+    BuildContext context,
+    String category,
+    double current,
+    String currency,
+  ) {
     final controller =
         TextEditingController(text: current.toStringAsFixed(2));
 
@@ -224,8 +236,10 @@ class BudgetPage extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF12291D),
-        title: Text("Edit Limit — $category",
-            style: const TextStyle(color: Colors.white)),
+        title: Text(
+          "Edit Limit — $category",
+          style: const TextStyle(color: Colors.white),
+        ),
         content: TextField(
           controller: controller,
           keyboardType:
@@ -242,23 +256,28 @@ class BudgetPage extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, null),
-            child:
-                const Text("Cancel", style: TextStyle(color: Colors.white70)),
+            child: const Text("Cancel",
+                style: TextStyle(color: Colors.white70)),
           ),
           TextButton(
             onPressed: () {
               final val = double.tryParse(controller.text);
               if (val == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Enter a valid number")));
+                  const SnackBar(
+                      content: Text("Enter a valid number")),
+                );
                 return;
               }
               Navigator.pop(ctx, val);
             },
-            child: const Text("Save",
-                style: TextStyle(
-                    color: Colors.greenAccent,
-                    fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Save",
+              style: TextStyle(
+                color: Colors.greenAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

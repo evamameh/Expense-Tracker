@@ -108,7 +108,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
     for (final row in _splitRows) {
       final double? v = double.tryParse(row.controller.text.trim());
       if (v != null && v > 0) {
-        print('Adding split: ${row.category} = $v'); 
+        ('Adding split: ${row.category} = $v'); 
         splits[row.category] = v;
       }
     }
@@ -130,11 +130,11 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
     }
   }
 
-  print('Final splits: $splits');
+  ('Final splits: $splits');
 
-      print('Final splits: $splits');
-      print('Expense category (main): $category');
-      print('Expense amount: $amount');
+      ('Final splits: $splits');
+      ('Expense category (main): $category');
+      ('Expense amount: $amount');
 
       final expense = Expense(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -149,7 +149,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
         recurrenceIntervalMonths: _recurrenceMonths,
       );
 
-      print('Created expense with splits: ${expense.splits}');
+     ('Created expense with splits: ${expense.splits}');
 
   ref.read(expensesNotifierProvider.notifier).addExpense(expense);
     if (_isRecurring) {
@@ -288,7 +288,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                             Expanded(
                               flex: 2,
                               child: DropdownButtonFormField<String>(
-                                value: categories.contains(_splitRows[i].category) 
+                                initialValue: categories.contains(_splitRows[i].category) 
                                     ? _splitRows[i].category 
                                     : categories.first, 
                                 dropdownColor: const Color(0xFF12291D),
@@ -302,7 +302,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                                   if (v != null) {
                                     setState(() {
                                       _splitRows[i].category = v;
-                                      print('Split row $i category changed to: $v'); 
+                                        ('Split row $i category changed to: $v'); 
                                     });
                                   }
                                 },
@@ -355,7 +355,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
                   if (!_useSplits)
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedCategory,
+                        initialValue: _selectedCategory,
                         items: categories
                             .map((c) =>
                                 DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(color: Colors.white))))

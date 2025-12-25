@@ -12,11 +12,11 @@ class ExpensesNotifier extends StateNotifier<List<Expense>> {
       for (final entry in expense.splits!.entries) {
         final category = entry.key;
         final amount = entry.value;
-        print('Processing split: $category = $amount'); 
+          ('Processing split: $category = $amount'); 
         
       }
     } else {
-      print('Processing single expense: ${expense.category} = ${expense.amount}');
+        ('Processing single expense: ${expense.category} = ${expense.amount}');
     }
   }
 

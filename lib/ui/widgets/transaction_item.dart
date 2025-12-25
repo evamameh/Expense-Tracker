@@ -4,6 +4,9 @@ import '../../models/expense.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
 import '../pages/edit_expense_page.dart';
+import '../../core/currency/currency_converter.dart';
+import '../../core/expense/expense_totals.dart';
+
 
 class TransactionItem extends ConsumerWidget {
   final Expense expense;
@@ -15,18 +18,14 @@ class TransactionItem extends ConsumerWidget {
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
 
-    double convertToPHP(double amount, String fromCurrency) {
-      final rate = rates[fromCurrency] ?? 1.0;
-      return amount * rate;
-    }
+    final baseAmount = expenseTotalInBaseCurrency(expense);
 
-    double convertFromPHP(double amountPHP, String toCurrency) {
-      final rate = rates[toCurrency] ?? 1.0;
-      return amountPHP / rate;
-    }
-
-    double amountInPHP = convertToPHP(expense.amount, expense.currency);
-    double finalAmount = convertFromPHP(amountInPHP, selectedCurrency);
+    final finalAmount = CurrencyConverter.convert(
+      baseAmount,
+      expense.currency,
+      selectedCurrency,
+      rates,
+    );
 
     return InkWell(
       onTap: () {
@@ -78,8 +77,10 @@ class TransactionItem extends ConsumerWidget {
                   ),
                   Text(
                     "${expense.date.month}/${expense.date.day}/${expense.date.year}",
-                    style:
-                        const TextStyle(color: Colors.white54, fontSize: 12),
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
