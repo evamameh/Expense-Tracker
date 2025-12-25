@@ -11,6 +11,15 @@ class AnalyticsLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (trendTotals.isEmpty) {
+      return const Center(
+        child: Text(
+          'No data for this period',
+          style: TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
