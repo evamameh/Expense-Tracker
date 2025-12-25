@@ -1,8 +1,5 @@
-// lib/ui/pages/edit_expense_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../models/expense.dart';
 import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
@@ -30,7 +27,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   late bool _isRecurring;
   late bool _hasReceipt;
 
-  // ⭐ The currency the user chooses inside this page
   late String _selectedCurrency;
 
   @override
@@ -47,7 +43,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
     _isRecurring = widget.expense.isRecurring;
     _hasReceipt = widget.expense.hasReceipt;
 
-    // ⭐ The page starts with the expense's actual currency
     _selectedCurrency = widget.expense.currency;
   }
 
@@ -71,7 +66,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   }
 }
 
-  // Convert from old → new currency using stored rates
   double _convert(double amount, String from, String to, Map<String, double> rates) {
     final rateFrom = rates[from] ?? 1.0;
     final rateTo = rates[to] ?? 1.0;
@@ -105,7 +99,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
       category: _selectedCategory,
       date: _selectedDate,
       note: _noteController.text,
-      currency: _selectedCurrency,  // ⭐ Save with new currency
+      currency: _selectedCurrency,  
       isRecurring: _isRecurring,
       hasReceipt: _hasReceipt,
     );
@@ -155,7 +149,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
           key: _formKey,
           child: ListView(
             children: [
-              // ---------- Currency Selector ----------
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -192,7 +185,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 20),
 
-              // ---------- Amount ----------
               TextFormField(
                 controller: _amountController,
                 keyboardType:
@@ -213,7 +205,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 16),
 
-              // ---------- Category + Date ----------
               Row(
                 children: [
                   Expanded(
@@ -249,7 +240,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 16),
 
-              // ---------- Note ----------
               TextFormField(
                 controller: _noteController,
                 maxLines: 2,
@@ -266,7 +256,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 16),
 
-              // ---------- Toggles ----------
               SwitchListTile(
                 value: _hasReceipt,
                 onChanged: (v) => setState(() => _hasReceipt = v),
@@ -285,7 +274,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 30),
 
-              // ---------- Save Button ----------
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -307,7 +295,6 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 12),
 
-              // ---------- Delete Button ----------
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

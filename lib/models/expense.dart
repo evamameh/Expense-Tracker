@@ -1,21 +1,17 @@
 class Expense {
   final String id;
-  final double amount; // total amount
-  final String category; // primary category (kept for compatibility)
+  final double amount; 
+  final String category;
   final DateTime date;
   final String currency;
   final String? note;
   final bool isRecurring;
   final bool hasReceipt;
 
-  /// Optional splits: category -> amount
-  /// If non-null and not empty, the expense is considered split across categories.
   final Map<String, double>? splits;
 
-  /// For recurring templates / occurrences: interval in months (1 = monthly)
   final int recurrenceIntervalMonths;
 
-  /// When this expense was created from a recurring template, store its id:
   final String? templateId;
 
   Expense({

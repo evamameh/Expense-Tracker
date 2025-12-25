@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:expense_tracker/ui/widgets/stat_card.dart';
 import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
-
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
 
@@ -32,7 +31,6 @@ class AnalyticsPage extends ConsumerWidget {
             TimePeriodSelector(),
             const SizedBox(height: 24),
 
-            // ===================== LINE CHART =====================
             const Text(
               "Daily Spending Trend",
               style: TextStyle(fontSize: 18, color: Colors.white),
@@ -149,8 +147,6 @@ class AnalyticsPage extends ConsumerWidget {
 
             const SizedBox(height: 40),
 
-
-            // ===================== PIE CHART =====================
             const Text(
               "Expenses by Category",
               style: TextStyle(fontSize: 18, color: Colors.white),
@@ -180,7 +176,6 @@ class AnalyticsPage extends ConsumerWidget {
     );
   }
 
-  // ================= PIE SECTIONS =================
   List<PieChartSectionData> _buildPieSections(Map<String, double> totals) {
     final colors = [
       Colors.greenAccent,
@@ -209,7 +204,6 @@ class AnalyticsPage extends ConsumerWidget {
     }).toList();
   }
 
-  // ================= LINE CHART SPOTS =================
   List<FlSpot> _buildLineSpots(Map<int, double> data) {
     final sortedKeys = data.keys.toList()..sort();
 

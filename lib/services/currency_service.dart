@@ -16,14 +16,12 @@ class CurrencyService {
       throw Exception("Unsupported currency");
     }
 
-    // Convert from source → USD → target
     double inUsd = amount / _exchangeRates[from]!;
     double result = inUsd * _exchangeRates[to]!;
 
     return double.parse(result.toStringAsFixed(2));
   }
 
-  /// Returns list of supported currency codes
   List<String> getSupportedCurrencies() {
     return _exchangeRates.keys.toList();
   }

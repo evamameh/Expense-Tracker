@@ -1,17 +1,11 @@
-// home_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-// Providers
 import '../../providers/computed/monthly_total.dart';
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
 import '../../providers/computed/selected_month_provider.dart';
-
-// Widgets
 import '../widgets/progress_bar.dart';
 import '../widgets/transaction_item.dart';
 
@@ -25,36 +19,24 @@ class HomePage extends ConsumerWidget {
     final rates = ref.watch(currencyRatesProvider);
     final selectedMonth = ref.watch(selectedMonthProvider);
 
-    // -----------------------------
-    // BASE MONTHLY BUDGET (IN PHP)
-    // -----------------------------
     const monthlyBudgetPHP = 250000.0;
 
-    // -----------------------------
-    // CONVERSION HELPERS
-    // -----------------------------
-    // Convert ANY expense TO PHP
     double convertToPHP(double amount, String fromCurrency) {
       final rate = (rates[fromCurrency] ?? 1.0).toDouble();
       return amount * rate;
     }
 
-    // Convert PHP → selectedCurrency for UI
     double convertFromPHP(double phpAmount) {
       final rate = (rates[selectedCurrency] ?? 1.0).toDouble();
       return phpAmount / rate;
     }
 
-    // -----------------------------
-    // TOTAL SPENT FOR SELECTED MONTH (PHP)
-    // -----------------------------
     final totalSpentPHP = expenses
         .where((e) =>
             e.date.year == selectedMonth.year &&
             e.date.month == selectedMonth.month)
         .fold<double>(0.0, (sum, e) => sum + convertToPHP(e.amount, e.currency));
 
-    // Values converted to UI currency
     final totalSpent = convertFromPHP(totalSpentPHP);
     final remaining = convertFromPHP(monthlyBudgetPHP - totalSpentPHP);
     final monthlyBudgetConverted = convertFromPHP(monthlyBudgetPHP);
@@ -67,9 +49,6 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // -----------------------------
-              // MONTH PICKER
-              // -----------------------------
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () async {
@@ -119,9 +98,6 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // -----------------------------
-              // CURRENCY SELECTOR
-              // -----------------------------
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -160,9 +136,6 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // -----------------------------
-              // STATIC CURRENCY CONVERSION RATES
-              // -----------------------------
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -181,12 +154,11 @@ class HomePage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Show all rates converted to the selected currency
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: rates.entries
-                          .where((entry) => entry.key != selectedCurrency) // Exclude selected currency
+                          .where((entry) => entry.key != selectedCurrency) 
                           .map((entry) => _rateCard(
                                 currency: entry.key,
                                 rate: _convertRate(entry.value.toDouble(), selectedCurrency, rates),
@@ -200,9 +172,6 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // -----------------------------
-              // BALANCE CARD
-              // -----------------------------
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -232,7 +201,6 @@ class HomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 6),
 
-                    // Remaining balance
                     Text(
                       "${remaining.toStringAsFixed(2)} $selectedCurrency",
                       style: const TextStyle(
@@ -244,7 +212,6 @@ class HomePage extends ConsumerWidget {
 
                     const SizedBox(height: 6),
 
-                    // Monthly budget
                     Text(
                       "/ ${monthlyBudgetConverted.toStringAsFixed(2)} $selectedCurrency",
                       style: const TextStyle(color: Colors.white54),
@@ -252,7 +219,6 @@ class HomePage extends ConsumerWidget {
 
                     const SizedBox(height: 18),
 
-                    // Progress bar (spent)
                     ProgressBar(
                       value: (totalSpentPHP / monthlyBudgetPHP).clamp(0, 1),
                       color: Colors.greenAccent,
@@ -270,9 +236,6 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // -----------------------------
-              // SUMMARY CARDS
-              // -----------------------------
               Row(
                 children: [
                   _summaryCard(
@@ -295,9 +258,6 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 28),
 
-              // -----------------------------
-              // TOP CATEGORIES SUMMARY
-              // -----------------------------
               const Text(
                 "Top Categories",
                 style: TextStyle(
@@ -307,12 +267,9 @@ class HomePage extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              // categories based on expenses
               Column(
                 children: () {
                   final categoriesData = ref.watch(expensesByCategoryProvider);
-                  
-                  // Convert to list and sort by spending amount (highest first)
                   final sortedCategories = categoriesData.entries
                       .map((entry) => MapEntry(entry.key, entry.value.toDouble()))
                       .toList()
@@ -333,9 +290,6 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 28),
 
-              // -----------------------------
-              // RECENT TRANSACTIONS
-              // -----------------------------
               const Text(
                 "Recent Transactions",
                 style: TextStyle(
@@ -358,7 +312,6 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  // Month name helper
   String _monthName(int m) {
     const names = [
       "January",
@@ -377,7 +330,6 @@ class HomePage extends ConsumerWidget {
     return names[m - 1];
   }
 
-  // Summary card widget
   Widget _summaryCard({
     required String title,
     required String value,
@@ -410,7 +362,6 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  // Simple category card (no budgets here)
   Widget _categoryCard({
     required String category,
     required double spent,
@@ -434,24 +385,20 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  // Helper function to convert rates based on selected currency
   double _convertRate(double phpRate, String targetCurrency, Map<String, num> rates) {
     if (targetCurrency == "PHP") {
       return phpRate;
     }
     
-    // Convert from PHP to target currency
     final targetRate = (rates[targetCurrency] ?? 1.0).toDouble();
     return phpRate / targetRate;
   }
 
-  // Currency rate card widget
   Widget _rateCard({
     required String currency,
     required double rate,
     required String selectedCurrency,
   }) {
-    // Get currency symbol
     String getCurrencySymbol(String curr) {
       switch (curr) {
         case 'USD': return '\$';

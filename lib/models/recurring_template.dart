@@ -1,12 +1,10 @@
-// lib/models/recurring_template.dart
-
 class RecurringTemplate {
   final String id;
   final double amount;
   final String currency;
   final String note;
   final Map<String, double>? splits;
-  final int intervalMonths; // e.g., 1 = monthly, 3 = every 3 months
+  final int intervalMonths; 
   DateTime nextDate;
   final bool active;
 

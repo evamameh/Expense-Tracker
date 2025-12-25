@@ -1,5 +1,3 @@
-// budget_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,13 +19,11 @@ class BudgetPage extends ConsumerWidget {
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
 
-    // Convert ANY currency to PHP
     double toPHP(double amount, String from) {
       final r = (rates[from] ?? 1.0).toDouble();
       return amount * r;
     }
 
-    // Convert PHP → selected currency
     double fromPHP(double amountPHP, String to) {
       final r = (rates[to] ?? 1.0).toDouble();
       return amountPHP / r;
@@ -41,7 +37,6 @@ class BudgetPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // TITLE
               const Text(
                 "Budgets",
                 style: TextStyle(
@@ -53,7 +48,6 @@ class BudgetPage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // CURRENCY SELECTOR
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -92,14 +86,12 @@ class BudgetPage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // LIST OF BUDGET CARDS
               Expanded(
                 child: ListView(
                   children: budgets.entries.map((entry) {
                     final category = entry.key;
-                    final limitPHP = entry.value.limit; // STORED IN PHP
+                    final limitPHP = entry.value.limit; 
 
-                    // Calculate SPENT in PHP
                     final spentPHP = expenses
                         .where((e) => _affectsCategory(e, category))
                         .fold<double>(0.0, (sum, e) {
@@ -111,11 +103,9 @@ class BudgetPage extends ConsumerWidget {
                       return sum + toPHP(e.amount, e.currency);
                     });
 
-                    // Convert PHP → user selected currency
                     final spent = fromPHP(spentPHP, selectedCurrency);
                     final limit = fromPHP(limitPHP, selectedCurrency);
 
-                    // percent MUST BE DOUBLE
                     final percent = (limit == 0)
                         ? 0.0
                         : (spent / limit).clamp(0.0, 1.0);
@@ -132,7 +122,6 @@ class BudgetPage extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // TOP ROW: CATEGORY + EDIT + STATUS
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -144,7 +133,6 @@ class BudgetPage extends ConsumerWidget {
 
                               Row(
                                 children: [
-                                  // EDIT BUTTON
                                   IconButton(
                                     icon: const Icon(Icons.edit,
                                         color: Colors.white70),
@@ -167,7 +155,6 @@ class BudgetPage extends ConsumerWidget {
                                     },
                                   ),
 
-                                  // STATUS BADGE
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
@@ -193,15 +180,13 @@ class BudgetPage extends ConsumerWidget {
 
                           const SizedBox(height: 12),
 
-                          // PROGRESS BAR
                           ProgressBar(
-                            value: percent, // FIXED: ALWAYS DOUBLE
+                            value: percent, 
                             color: Colors.greenAccent,
                           ),
 
                           const SizedBox(height: 6),
 
-                          // DETAILS
                           Text(
                             "${spent.toStringAsFixed(2)} $selectedCurrency spent",
                             style: const TextStyle(
@@ -230,7 +215,6 @@ class BudgetPage extends ConsumerWidget {
     return e.category == category;
   }
 
-  // Dialog returns NEW LIMIT in selectedCurrency
   Future<double?> _editLimitDialog(BuildContext context, String category,
       double current, String currency) {
     final controller =

@@ -6,7 +6,6 @@ import 'expenses_notifier.dart';
 class RecurringNotifier extends StateNotifier<List<RecurringExpense>> {
   RecurringNotifier() : super([]);
 
-  // Create recurring template from an existing expense
   void createFromExpense(Expense expense, {required int intervalMonths}) {
     final template = RecurringExpense(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -21,13 +20,11 @@ class RecurringNotifier extends StateNotifier<List<RecurringExpense>> {
     state = [...state, template];
   }
 
-  // Generate next occurrences (e.g., called monthly)
   void generateDueExpenses(WidgetRef ref) {
     final now = DateTime.now();
 
     for (final r in state) {
       if (now.isAfter(r.nextDate)) {
-        // Add new expense from recurring template
         final newExpense = Expense(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           amount: r.amount,
@@ -38,7 +35,6 @@ class RecurringNotifier extends StateNotifier<List<RecurringExpense>> {
 
         ref.read(expensesNotifierProvider.notifier).addExpense(newExpense);
 
-        // Update next recurring date
         final updated = r.copyWith(
           nextDate: DateTime(
             r.nextDate.year,

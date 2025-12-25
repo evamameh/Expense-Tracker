@@ -1,7 +1,6 @@
 import '../models/expense.dart';
 
 final mockExpenses = [
-  // ==== OCTOBER 2025 ====
   Expense(id: "1", amount: 84.30, category: "Groceries", date: DateTime(2025, 10, 2), currency: "PHP"),
   Expense(id: "2", amount: 45.00, category: "Transport", date: DateTime(2025, 10, 3), currency: "PHP"),
   Expense(id: "3", amount: 15.99, category: "Subscriptions", date: DateTime(2025, 10, 4), currency: "PHP"),
@@ -17,7 +16,6 @@ final mockExpenses = [
   Expense(id: "13", amount: 75.00, category: "Health", date: DateTime(2025, 10, 20), currency: "PHP"),
   Expense(id: "14", amount: 92.99, category: "Groceries", date: DateTime(2025, 10, 21), currency: "PHP"),
 
-  // ==== NOVEMBER 2025 ====
   Expense(id: "15", amount: 50.00, category: "Dining", date: DateTime(2025, 11, 1), currency: "PHP"),
   Expense(id: "16", amount: 22.00, category: "Transport", date: DateTime(2025, 11, 2), currency: "PHP"),
   Expense(id: "17", amount: 120.75, category: "Groceries", date: DateTime(2025, 11, 3), currency: "PHP"),
@@ -29,7 +27,6 @@ final mockExpenses = [
   Expense(id: "23", amount: 45.00, category: "Transport", date: DateTime(2025, 11, 9), currency: "PHP"),
   Expense(id: "24", amount: 15.99, category: "Subscriptions", date: DateTime(2025, 11, 10), currency: "PHP"),
 
-  // ==== DECEMBER 2025 ====
   Expense(id: "25", amount: 180.40, category: "Groceries", date: DateTime(2025, 12, 2), currency: "PHP"),
   Expense(id: "26", amount: 38.00, category: "Transport", date: DateTime(2025, 12, 3), currency: "PHP"),
   Expense(id: "27", amount: 140.00, category: "Shopping", date: DateTime(2025, 12, 4), currency: "PHP"),

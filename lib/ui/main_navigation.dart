@@ -1,8 +1,5 @@
-// main_navigation.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../ui/pages/home_page.dart';
 import '../ui/pages/analytics_page.dart';
 import '../ui/pages/budget_page.dart';
@@ -22,7 +19,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   final pages = const [
     HomePage(),
     AnalyticsPage(),
-    SizedBox(), // empty page placeholder for FAB
+    SizedBox(),
     BudgetPage(),
     SettingsPage(),
   ];
@@ -31,15 +28,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
-
-      // -------------------------------
-      // MAIN PAGE
-      // -------------------------------
       body: pages[index],
-
-      // -------------------------------
-      // CENTER FLOATING ACTION BUTTON
-      // -------------------------------
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: SizedBox(
         height: 68,
@@ -57,9 +46,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         ),
       ),
 
-      // -------------------------------
-      // BOTTOM APP BAR WITH NOTCH
-      // -------------------------------
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
@@ -69,7 +55,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // HOME
               _navItem(
                 icon: Icons.grid_view_rounded,
                 label: "Home",
@@ -77,7 +62,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
                 onTap: () => setState(() => index = 0),
               ),
 
-              // REPORTS
               _navItem(
                 icon: Icons.bar_chart_rounded,
                 label: "Reports",
@@ -85,9 +69,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
                 onTap: () => setState(() => index = 1),
               ),
 
-              const SizedBox(width: 55), // space for FAB
+              const SizedBox(width: 55),
 
-              // BUDGET
               _navItem(
                 icon: Icons.account_balance_wallet_rounded,
                 label: "Budget",
@@ -95,7 +78,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
                 onTap: () => setState(() => index = 3),
               ),
 
-              // SETTINGS
               _navItem(
                 icon: Icons.settings_rounded,
                 label: "Settings",
@@ -109,9 +91,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     );
   }
 
-  // -------------------------------
-  // NAVIGATION ICON WIDGET
-  // -------------------------------
   Widget _navItem({
     required IconData icon,
     required String label,

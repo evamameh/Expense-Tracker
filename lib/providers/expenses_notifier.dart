@@ -8,19 +8,14 @@ class ExpensesNotifier extends StateNotifier<List<Expense>> {
   void addExpense(Expense expense) {
     state = [...state, expense];
     
-    // If expense has splits, update each category separately
     if (expense.splits != null && expense.splits!.isNotEmpty) {
-      // Process splits - each category should be updated with its split amount
       for (final entry in expense.splits!.entries) {
         final category = entry.key;
         final amount = entry.value;
-        print('Processing split: $category = $amount'); // Debug
+        print('Processing split: $category = $amount'); 
         
-        // Update budget or category tracking for each split
-        // Make sure this processes each category correctly
       }
     } else {
-      // Process single category expense
       print('Processing single expense: ${expense.category} = ${expense.amount}');
     }
   }
@@ -33,7 +28,6 @@ class ExpensesNotifier extends StateNotifier<List<Expense>> {
     state = state.where((e) => e.id != id).toList();
   }
 
-  /// convenience for adding raw (not used for splits)
   void addExpenseRaw({
     required double amount,
     required String category,
