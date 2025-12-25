@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
-import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/date_range_provider.dart';
 
 import '../../core/currency/currency_converter.dart';
@@ -23,9 +22,10 @@ class HomePage extends ConsumerWidget {
     final rates = ref.watch(currencyRatesProvider);
     final dateRange = ref.watch(dateRangeProvider);
 
-    const monthlyBudgetPHP = 50000.0;
+    // 🔹 DEFAULT MONTH = DECEMBER
+    final defaultMonth = DateTime(2025, 12);
 
-    final now = DateTime.now();
+    const monthlyBudgetPHP = 50000.0;
 
     // 🔹 FILTER EXPENSES
     final filteredExpenses = expenses.where((e) {
@@ -34,8 +34,9 @@ class HomePage extends ConsumerWidget {
             !e.date.isAfter(dateRange.end);
       }
 
-      // fallback → current month
-      return e.date.year == now.year && e.date.month == now.month;
+      // 🔹 FALLBACK → DECEMBER
+      return e.date.year == defaultMonth.year &&
+          e.date.month == defaultMonth.month;
     }).toList();
 
     // 🔹 TOTAL SPENT (split-aware)
@@ -63,10 +64,10 @@ class HomePage extends ConsumerWidget {
 
     final remaining = monthlyBudget - totalSpent;
 
-    // 🔹 CATEGORY TOTALS
-    final categoryTotals = ref.watch(expensesByCategoryProvider);
-    final sortedCategories = categoryTotals.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    // 🔹 TOP CATEGORIES (DECEMBER BY DEFAULT)
+    final categories =
+        expensesByCategoryInBaseCurrency(filteredExpenses).entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
@@ -76,54 +77,53 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 Header (Month or Date Range)
+              // 🔹 HEADER (MONTH / RANGE)
               Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    Text(
-      dateRange == null
-          ? "${_monthName(now.month)} ${now.year}"
-          : "${dateRange.start.month}/${dateRange.start.day}"
-              " - ${dateRange.end.month}/${dateRange.end.day}",
-      style: const TextStyle(
-        fontSize: 22,
-        color: Colors.white,
-      ),
-    ),
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    dateRange == null
+                        ? "December 2025"
+                        : "${dateRange.start.month}/${dateRange.start.day}"
+                            " - ${dateRange.end.month}/${dateRange.end.day}",
+                    style:
+                        const TextStyle(fontSize: 22, color: Colors.white),
+                  ),
+                  Row(
+                    children: [
+                      if (dateRange != null)
+                        IconButton(
+                          icon: const Icon(Icons.close,
+                              color: Colors.white70),
+                          tooltip: "Clear date range",
+                          onPressed: () {
+                            ref
+                                .read(dateRangeProvider.notifier)
+                                .state = null;
+                          },
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.date_range,
+                            color: Colors.white),
+                        onPressed: () async {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                            initialDateRange: dateRange,
+                          );
 
-    Row(
-      children: [
-        // 🔹 Clear date range (ONLY when active)
-        if (dateRange != null)
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white70),
-            tooltip: "Clear date range",
-            onPressed: () {
-              ref.read(dateRangeProvider.notifier).state = null;
-            },
-          ),
-
-        // 🔹 Open calendar
-        IconButton(
-          icon: const Icon(Icons.date_range, color: Colors.white),
-          onPressed: () async {
-            final picked = await showDateRangePicker(
-              context: context,
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2035),
-              initialDateRange: dateRange,
-            );
-
-            if (picked != null) {
-              ref.read(dateRangeProvider.notifier).state = picked;
-            }
-          },
-        ),
-      ],
-    ),
-  ],
-),
-
+                          if (picked != null) {
+                            ref
+                                .read(dateRangeProvider.notifier)
+                                .state = picked;
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
 
               const SizedBox(height: 20),
 
@@ -181,17 +181,14 @@ class HomePage extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: remaining >= 0
-                              ? Colors.greenAccent
-                              : Colors.redAccent,
+                          color: Colors.greenAccent,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(
-                          remaining >= 0 ? "Safe" : "Over",
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: const Text(
+                          "Safe",
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -211,8 +208,7 @@ class HomePage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 18),
                     ProgressBar(
-                      value:
-                          (totalSpent / monthlyBudget).clamp(0.0, 1.0),
+                      value: (totalSpent / monthlyBudget).clamp(0.0, 1.0),
                       color: Colors.greenAccent,
                     ),
                     const SizedBox(height: 6),
@@ -230,15 +226,15 @@ class HomePage extends ConsumerWidget {
               const Text(
                 "Top Categories",
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 16),
 
               Column(
-                children: sortedCategories.map((entry) {
+                children: categories.map((entry) {
                   final spentConverted = CurrencyConverter.convert(
                     entry.value,
                     "PHP",
@@ -260,11 +256,11 @@ class HomePage extends ConsumerWidget {
               const Text(
                 "Recent Transactions",
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 12),
 
               Column(
@@ -280,7 +276,6 @@ class HomePage extends ConsumerWidget {
     );
   }
 
-  // 🔹 Category Card
   Widget _categoryCard({
     required String category,
     required double spent,
@@ -296,37 +291,14 @@ class HomePage extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            category,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-          ),
+          Text(category,
+              style: const TextStyle(color: Colors.white, fontSize: 16)),
           Text(
             "${spent.toStringAsFixed(2)} $currency",
-            style: const TextStyle(
-              color: Colors.greenAccent,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(color: Colors.greenAccent),
           ),
         ],
       ),
     );
-  }
-
-  String _monthName(int m) {
-    const names = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    return names[m - 1];
   }
 }
