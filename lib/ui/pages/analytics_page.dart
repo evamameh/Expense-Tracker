@@ -6,6 +6,7 @@ import 'package:expense_tracker/ui/widgets/stat_card.dart';
 import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
 import 'package:expense_tracker/ui/widgets/analytics_line_chart.dart';
 import 'package:expense_tracker/ui/widgets/analytics_pie_chart.dart';
+import 'package:expense_tracker/ui/widgets/compare_previous_month_switch.dart';
 
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
@@ -120,54 +121,8 @@ class AnalyticsPage extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10231A),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A3325),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.compare_arrows_rounded,
-                      color: Colors.white70,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Compare to previous month',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  StatefulBuilder(
-                    builder: (context, setState) {
-                      bool isOn = false;
-                      return Switch(
-                        value: isOn,
-                        activeColor: Colors.white,
-                        activeTrackColor: Colors.greenAccent,
-                        onChanged: (val) {
-                          setState(() => isOn = val);
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-
+            ComparePreviousMonthSwitch(),
+            
             const SizedBox(height: 10),
 
 
