@@ -186,8 +186,6 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
 
     _selectedCategory ??= categories.first;
 
-    final selectedCurrency = ref.watch(selectedCurrencyProvider);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Add Expense"),

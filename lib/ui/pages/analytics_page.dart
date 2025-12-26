@@ -13,8 +13,9 @@ import 'package:expense_tracker/ui/widgets/currency_selector.dart';
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
 import '../../providers/computed/date_range_provider.dart'; 
-import '../../providers/currency/selected_currency.dart';
 import '../../providers/currency/currency_rates.dart';
+import '../../providers/computed/analytics_stats_provider.dart';
+import '../../providers/currency/selected_currency.dart';
 
 import '../../core/currency/currency_converter.dart';
 
@@ -27,7 +28,7 @@ class AnalyticsPage extends ConsumerWidget {
     final categoryTotals = ref.watch(expensesByCategoryProvider);
     final trendTotals = ref.watch(spendingTrendsProvider);
     final dateRange = ref.watch(dateRangeProvider);
-    
+    final stats = ref.watch(analyticsStatsProvider);
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
 
@@ -104,35 +105,37 @@ class AnalyticsPage extends ConsumerWidget {
             const SizedBox(height: 16),
 
             Row(
-              children: const [
+              children: [
                 Expanded(
                   child: StatCard(
                     label: 'AVG. DAILY',
-                    value: '\$79.03',
-                    changeText: '↑ 2%',
+                    value: '${stats.avgDaily.toStringAsFixed(2)} $selectedCurrency',
+                    // You can compute a real change later; placeholder for now
+                    changeText: '',
                     changeColor: Colors.greenAccent,
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: StatCard(
                     label: 'PROJECTED',
-                    value: '\$3,100',
+                    value: '${stats.projected.toStringAsFixed(0)} $selectedCurrency',
                     subtitle: 'Est. End',
                     changeText: '',
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: StatCard(
-                    label: 'SAVED',
-                    value: '\$120',
-                    changeText: '↑ 8%',
+                    label: 'SPENT',
+                    value: '${stats.totalSpent.toStringAsFixed(2)} $selectedCurrency',
+                    changeText: '',
                     changeColor: Colors.greenAccent,
                   ),
                 ),
               ],
             ),
+
 
             const SizedBox(height: 16),
 
