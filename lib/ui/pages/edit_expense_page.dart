@@ -31,14 +31,21 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   late bool _hasReceipt;
   late bool _isRecurring;
 
+  late double _originalTotal;
+  bool _amountError = false;
+
+  bool get _hasSplits =>
+      widget.expense.splits != null &&
+      widget.expense.splits!.isNotEmpty;
+
   @override
   void initState() {
     super.initState();
 
-    final baseAmount = expenseTotalInBaseCurrency(widget.expense);
+    _originalTotal = expenseTotalInBaseCurrency(widget.expense);
 
     _amountController =
-        TextEditingController(text: baseAmount.toStringAsFixed(2));
+        TextEditingController(text: _originalTotal.toStringAsFixed(2));
     _noteController =
         TextEditingController(text: widget.expense.note ?? '');
 
@@ -86,6 +93,7 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
     setState(() {
       _selectedCurrency = newCurrency;
       _amountController.text = converted.toStringAsFixed(2);
+      _amountError = false;
     });
   }
 
@@ -94,6 +102,14 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
     final amount = double.tryParse(_amountController.text);
     if (amount == null) return;
+
+    // 🔴 INLINE ERROR FOR SPLIT EXPENSES
+    if (_hasSplits && amount != _originalTotal) {
+      setState(() {
+        _amountError = true;
+      });
+      return;
+    }
 
     final updated = widget.expense.copyWith(
       amount: amount,
@@ -189,13 +205,31 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               const SizedBox(height: 20),
 
-              // 🔹 Amount
+              // 🔹 Amount (INLINE ERROR LIKE ADD PAGE)
               TextFormField(
                 controller: _amountController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 style: const TextStyle(color: Colors.white),
-                decoration: _input("Amount"),
+                decoration: InputDecoration(
+                  labelText: "Amount",
+                  labelStyle:
+                      const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF12291D),
+                  border: const OutlineInputBorder(
+                    borderRadius:
+                        BorderRadius.all(Radius.circular(12)),
+                  ),
+                  errorText: _amountError
+                      ? "Total amount cannot be changed for split expenses"
+                      : null,
+                ),
+                onChanged: (_) {
+                  if (_amountError) {
+                    setState(() => _amountError = false);
+                  }
+                },
                 validator: (v) =>
                     v == null || double.tryParse(v) == null
                         ? "Enter valid amount"
@@ -216,8 +250,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                                 value: c,
                                 child: Text(
                                   c,
-                                  style:
-                                      const TextStyle(color: Colors.white),
+                                  style: const TextStyle(
+                                      color: Colors.white),
                                 ),
                               ))
                           .toList(),
@@ -233,7 +267,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                     label: Text(
                         "${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}"),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A2E23)),
+                        backgroundColor:
+                            const Color(0xFF1A2E23)),
                   ),
                 ],
               ),
@@ -252,7 +287,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               SwitchListTile(
                 value: _hasReceipt,
-                onChanged: (v) => setState(() => _hasReceipt = v),
+                onChanged: (v) =>
+                    setState(() => _hasReceipt = v),
                 title: const Text("Has Receipt?",
                     style: TextStyle(color: Colors.white)),
                 activeThumbColor: Colors.greenAccent,
@@ -260,13 +296,14 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
 
               SwitchListTile(
                 value: _isRecurring,
-                onChanged: (v) => setState(() => _isRecurring = v),
+                onChanged: (v) =>
+                    setState(() => _isRecurring = v),
                 title: const Text("Recurring Expense",
                     style: TextStyle(color: Colors.white)),
-                 activeThumbColor: Colors.greenAccent,
+                activeThumbColor: Colors.greenAccent,
               ),
 
-              // 🔒 Split Indicator (READ-ONLY)
+              //  READ-ONLY SPLITS
               _splitIndicator(widget.expense, rates),
 
               const SizedBox(height: 30),
@@ -276,12 +313,14 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.greenAccent,
                   foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: const Text(
                   "Save Changes",
-                  style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -292,12 +331,14 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.redAccent,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: const Text(
                   "Delete Expense",
-                  style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -326,7 +367,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
         children: [
           Row(
             children: const [
-              Icon(Icons.call_split, color: Colors.greenAccent, size: 20),
+              Icon(Icons.call_split,
+                  color: Colors.greenAccent, size: 20),
               SizedBox(width: 8),
               Text(
                 "Split Breakdown",
@@ -337,7 +379,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                 ),
               ),
               Spacer(),
-              Icon(Icons.lock, color: Colors.white38, size: 18),
+              Icon(Icons.lock,
+                  color: Colors.white38, size: 18),
             ],
           ),
           const SizedBox(height: 12),
@@ -352,11 +395,12 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
                 children: [
                   Text(e.key,
-                      style:
-                          const TextStyle(color: Colors.white70)),
+                      style: const TextStyle(
+                          color: Colors.white70)),
                   Text(
                     "${converted.toStringAsFixed(2)} $_selectedCurrency",
                     style: const TextStyle(
@@ -371,7 +415,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
           const SizedBox(height: 8),
           const Text(
             "Splits are read-only. Edit from Add Expense.",
-            style: TextStyle(color: Colors.white38, fontSize: 12),
+            style:
+                TextStyle(color: Colors.white38, fontSize: 12),
           ),
         ],
       ),
@@ -385,7 +430,8 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
       filled: true,
       fillColor: const Color(0xFF12291D),
       border: const OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius:
+            BorderRadius.all(Radius.circular(12)),
       ),
     );
   }
