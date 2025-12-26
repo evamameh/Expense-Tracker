@@ -12,34 +12,33 @@ import '../../core/expense/expense_totals.dart';
 import '../widgets/progress_bar.dart';
 import '../widgets/transaction_item.dart';
 
+import '../../providers/computed/converted_expenses_provider.dart';
+
+
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final expenses = ref.watch(expensesNotifierProvider);
+    final expenses = ref.watch(convertedExpensesProvider);
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
     final dateRange = ref.watch(dateRangeProvider);
 
-    // 🔹 DEFAULT MONTH = DECEMBER
     final defaultMonth = DateTime(2025, 12);
 
     const monthlyBudgetPHP = 50000.0;
 
-    // 🔹 FILTER EXPENSES
     final filteredExpenses = expenses.where((e) {
       if (dateRange != null) {
         return !e.date.isBefore(dateRange.start) &&
             !e.date.isAfter(dateRange.end);
       }
 
-      // 🔹 FALLBACK → DECEMBER
       return e.date.year == defaultMonth.year &&
           e.date.month == defaultMonth.month;
     }).toList();
 
-    // 🔹 TOTAL SPENT (split-aware)
     final totalSpent = filteredExpenses.fold<double>(
       0.0,
       (sum, e) {
@@ -54,7 +53,6 @@ class HomePage extends ConsumerWidget {
       },
     );
 
-    // 🔹 Monthly budget converted
     final monthlyBudget = CurrencyConverter.convert(
       monthlyBudgetPHP,
       "PHP",

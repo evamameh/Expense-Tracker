@@ -44,7 +44,7 @@ class ComparePreviousMonthSwitch extends ConsumerWidget {
           ),
           Switch(
             value: comparePrev,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: Colors.greenAccent,
             onChanged: (val) {
               // 1) toggle on/off
