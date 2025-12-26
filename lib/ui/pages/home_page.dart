@@ -16,15 +16,12 @@ import '../widgets/budget_bar.dart';
 import '../widgets/category_card.dart';
 import '../widgets/currency_selector.dart';
 
-import '../../providers/computed/converted_expenses_provider.dart';
-
-
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final expenses = ref.watch(convertedExpensesProvider);
+    final expenses = ref.watch(expensesNotifierProvider);
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
     final dateRange = ref.watch(dateRangeProvider);
