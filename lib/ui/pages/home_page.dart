@@ -77,16 +77,16 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 HEADER (MONTH / RANGE)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     dateRange == null
-                        ? 'Select a date range'
-                        : '${dateRange.start.month}/${dateRange.start.day}'
-                          ' - ${dateRange.end.month}/${dateRange.end.day}',
-                    style: const TextStyle(fontSize: 22, color: Colors.white),
+                        ? "December 2025"
+                        : "${dateRange.start.month}/${dateRange.start.day}"
+                            " - ${dateRange.end.month}/${dateRange.end.day}",
+                    style:
+                        const TextStyle(fontSize: 22, color: Colors.white),
                   ),
                   Row(
                     children: [
