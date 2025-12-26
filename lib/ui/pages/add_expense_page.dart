@@ -5,6 +5,8 @@ import '../../providers/expenses_notifier.dart';
 import '../../providers/currency/selected_currency.dart';
 import '../../providers/budget_notifier.dart';
 import '../../providers/recurring_notifier.dart';
+import '../widgets/currency_selector.dart';
+
 
 class AddExpensePage extends ConsumerStatefulWidget {
   const AddExpensePage({super.key});
@@ -182,7 +184,6 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
       _splitRows.add(_SplitRow(category: categories.first));
     }
 
-
     _selectedCategory ??= categories.first;
 
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
@@ -200,41 +201,7 @@ class _AddExpensePageState extends ConsumerState<AddExpensePage> {
           child: ListView(
             children: [
               // CURRENCY SELECTOR
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final c in ["USD", "EUR", "GBP", "JPY", "PHP"])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: GestureDetector(
-                          onTap: () => ref
-                              .read(selectedCurrencyProvider.notifier)
-                              .state = c,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 18, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: selectedCurrency == c
-                                  ? Colors.greenAccent
-                                  : const Color(0xFF1A2E23),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              c,
-                              style: TextStyle(
-                                color: selectedCurrency == c
-                                    ? Colors.black
-                                    : Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                  ],
-                ),
-              ),
+              const CurrencySelector(),
 
               const SizedBox(height: 16),
 

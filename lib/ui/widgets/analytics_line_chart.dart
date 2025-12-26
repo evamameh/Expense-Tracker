@@ -1,7 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AnalyticsLineChart extends StatelessWidget {
+import '../../providers/currency/selected_currency.dart';
+
+class AnalyticsLineChart extends ConsumerWidget {
   final Map<int, double> trendTotals;
 
   const AnalyticsLineChart({
@@ -10,7 +13,7 @@ class AnalyticsLineChart extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (trendTotals.isEmpty) {
       return const Center(
         child: Text(
@@ -19,6 +22,8 @@ class AnalyticsLineChart extends StatelessWidget {
         ),
       );
     }
+
+    final selectedCurrency = ref.watch(selectedCurrencyProvider);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -51,6 +56,25 @@ class AnalyticsLineChart extends StatelessWidget {
                   );
                 },
               ),
+            ),
+          ),
+
+          lineTouchData: LineTouchData(
+            enabled: true,
+            touchTooltipData: LineTouchTooltipData(
+              tooltipBgColor: Colors.black.withOpacity(0.7),
+              getTooltipItems: (touchedSpots) {
+                return touchedSpots.map((barSpot) {
+                  final value = barSpot.y;
+                  return LineTooltipItem(
+                    '${value.toStringAsFixed(2)} $selectedCurrency',
+                    const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                }).toList();
+              },
             ),
           ),
 

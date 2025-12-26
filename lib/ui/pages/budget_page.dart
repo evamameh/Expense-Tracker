@@ -10,6 +10,7 @@ import '../../core/currency/currency_converter.dart';
 import '../../core/expense/expense_totals.dart';
 
 import '../widgets/progress_bar.dart';
+import '../widgets/currency_selector.dart';
 
 class BudgetPage extends ConsumerWidget {
   const BudgetPage({super.key});
@@ -42,40 +43,7 @@ class BudgetPage extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // 🔹 Currency selector
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: ["USD", "EUR", "GBP", "JPY", "PHP"].map((c) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: GestureDetector(
-                        onTap: () => ref
-                            .read(selectedCurrencyProvider.notifier)
-                            .state = c,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selectedCurrency == c
-                                ? Colors.greenAccent
-                                : const Color(0xFF1A2E23),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            c,
-                            style: TextStyle(
-                              color: selectedCurrency == c
-                                  ? Colors.black
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
+              const CurrencySelector(),
 
               const SizedBox(height: 20),
 

@@ -1,3 +1,4 @@
+import 'package:expense_tracker/providers/budget_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +12,9 @@ import '../../core/expense/expense_totals.dart';
 
 import '../widgets/progress_bar.dart';
 import '../widgets/transaction_item.dart';
+import '../widgets/budget_bar.dart';
+import '../widgets/category_card.dart';
+import '../widgets/currency_selector.dart';
 
 import '../../providers/computed/converted_expenses_provider.dart';
 
@@ -125,97 +129,12 @@ class HomePage extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // 🔹 Currency Selector
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: ["USD", "EUR", "GBP", "JPY", "PHP"].map((c) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: GestureDetector(
-                        onTap: () => ref
-                            .read(selectedCurrencyProvider.notifier)
-                            .state = c,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selectedCurrency == c
-                                ? Colors.greenAccent
-                                : const Color(0xFF1A2E23),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            c,
-                            style: TextStyle(
-                              color: selectedCurrency == c
-                                  ? Colors.black
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
+              const CurrencySelector(),
 
               const SizedBox(height: 20),
 
               // 🔹 Budget Card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF12291D),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.greenAccent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          "Safe",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "${remaining.toStringAsFixed(2)} $selectedCurrency",
-                      style: const TextStyle(
-                        fontSize: 36,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "/ ${monthlyBudget.toStringAsFixed(2)} $selectedCurrency",
-                      style: const TextStyle(color: Colors.white54),
-                    ),
-                    const SizedBox(height: 18),
-                    ProgressBar(
-                      value: (totalSpent / monthlyBudget).clamp(0.0, 1.0),
-                      color: Colors.greenAccent,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "You've spent ${totalSpent.toStringAsFixed(2)} $selectedCurrency",
-                      style: const TextStyle(color: Colors.white60),
-                    ),
-                  ],
-                ),
-              ),
+              const BudgetCard(),
 
               const SizedBox(height: 28),
 
@@ -238,14 +157,14 @@ class HomePage extends ConsumerWidget {
                     selectedCurrency,
                     rates,
                   );
-
-                  return _categoryCard(
+                  return CategoryCard(
                     category: entry.key,
                     spent: spentConverted,
                     currency: selectedCurrency,
                   );
                 }).toList(),
               ),
+
 
               const SizedBox(height: 28),
 
@@ -269,32 +188,6 @@ class HomePage extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _categoryCard({
-    required String category,
-    required double spent,
-    required String currency,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12291D),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(category,
-              style: const TextStyle(color: Colors.white, fontSize: 16)),
-          Text(
-            "${spent.toStringAsFixed(2)} $currency",
-            style: const TextStyle(color: Colors.greenAccent),
-          ),
-        ],
       ),
     );
   }

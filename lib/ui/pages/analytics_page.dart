@@ -7,10 +7,16 @@ import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
 import 'package:expense_tracker/ui/widgets/analytics_line_chart.dart';
 import 'package:expense_tracker/ui/widgets/analytics_pie_chart.dart';
 import 'package:expense_tracker/ui/widgets/compare_previous_month_switch.dart';
+import 'package:expense_tracker/ui/widgets/currency_selector.dart';
+
 
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
 import '../../providers/computed/date_range_provider.dart'; 
+import '../../providers/currency/selected_currency.dart';
+import '../../providers/currency/currency_rates.dart';
+
+import '../../core/currency/currency_converter.dart';
 
 
 class AnalyticsPage extends ConsumerWidget {
@@ -21,6 +27,9 @@ class AnalyticsPage extends ConsumerWidget {
     final categoryTotals = ref.watch(expensesByCategoryProvider);
     final trendTotals = ref.watch(spendingTrendsProvider);
     final dateRange = ref.watch(dateRangeProvider);
+    
+    final selectedCurrency = ref.watch(selectedCurrencyProvider);
+    final rates = ref.watch(currencyRatesProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
@@ -75,6 +84,12 @@ class AnalyticsPage extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+
+            // ===================== CURRENCY SELECTOR =====================
+
+            const CurrencySelector(),
+
             const SizedBox(height: 24),
 
             // ===================== LINE CHART =====================
