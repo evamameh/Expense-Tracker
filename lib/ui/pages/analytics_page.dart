@@ -1,10 +1,16 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:expense_tracker/ui/widgets/stat_card.dart';
 import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
+import 'package:expense_tracker/ui/widgets/analytics_line_chart.dart';
+import 'package:expense_tracker/ui/widgets/analytics_pie_chart.dart';
+import 'package:expense_tracker/ui/widgets/compare_previous_month_switch.dart';
+
 import '../../providers/computed/expenses_by_category.dart';
 import '../../providers/computed/spending_trends.dart';
+import '../../providers/computed/date_range_provider.dart'; 
 
 
 class AnalyticsPage extends ConsumerWidget {
@@ -14,6 +20,7 @@ class AnalyticsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categoryTotals = ref.watch(expensesByCategoryProvider);
     final trendTotals = ref.watch(spendingTrendsProvider);
+    final dateRange = ref.watch(dateRangeProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B1C14),
@@ -28,40 +35,56 @@ class AnalyticsPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ================= TIME PERIOD SELECTOR =================
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  dateRange == null
+                      ? 'Select a date range'
+                      : '${dateRange.start.month}/${dateRange.start.day}'
+                        ' - ${dateRange.end.month}/${dateRange.end.day}',
+                  style: const TextStyle(fontSize: 22, color: Colors.white),
+                ),
 
-            TimePeriodSelector(),
+                Row(
+                  children: [
+                    if (dateRange != null)
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70),
+                        tooltip: "Clear date range",
+                        onPressed: () {
+                          ref.read(dateRangeProvider.notifier).state = null;
+                        },
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.date_range, color: Colors.white),
+                      onPressed: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                          initialDateRange: dateRange,
+                        );
+                        if (picked != null) {
+                          ref.read(dateRangeProvider.notifier).state = picked;
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
 
+            // ===================== LINE CHART =====================
             const Text(
               "Daily Spending Trend",
               style: TextStyle(fontSize: 18, color: Colors.white),
             ),
             const SizedBox(height: 16),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF12291D),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              height: 280,
-              child: LineChart(
-                LineChartData(
-                  gridData: const FlGridData(show: false),
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      color: Colors.greenAccent,
-                      barWidth: 3,
-                      isCurved: true,
-                      spots: _buildLineSpots(trendTotals),
-                      dotData: const FlDotData(show: false),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            AnalyticsLineChart(trendTotals: trendTotals),
 
             const SizedBox(height: 16),
 
@@ -98,118 +121,24 @@ class AnalyticsPage extends ConsumerWidget {
 
             const SizedBox(height: 16),
 
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF10231A),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A3325),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.compare_arrows_rounded,
-                      color: Colors.white70,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'Compare to previous month',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  StatefulBuilder(
-                    builder: (context, setState) {
-                      bool isOn = false;
-                      return Switch(
-                        value: isOn,
-                        activeThumbColor: Colors.white,
-                        activeTrackColor: Colors.greenAccent,
-                        onChanged: (val) {
-                          setState(() => isOn = val);
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
+            ComparePreviousMonthSwitch(),
+            
+            const SizedBox(height: 10),
 
 
-            const SizedBox(height: 40),
-
+            // ===================== PIE CHART =====================
             const Text(
               "Expenses by Category",
               style: TextStyle(fontSize: 18, color: Colors.white),
             ),
             const SizedBox(height: 16),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF12291D),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              height: 260,
-              child: PieChart(
-                PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 50,
-                  sections: _buildPieSections(categoryTotals),
-                ),
-              ),
-            ),
+            AnalyticsPieChart(categoryTotals: categoryTotals),
 
             const SizedBox(height: 40),
           ],
         ),
       ),
     );
-  }
-
-  List<PieChartSectionData> _buildPieSections(Map<String, double> totals) {
-    final colors = [
-      Colors.greenAccent,
-      Colors.orangeAccent,
-      Colors.lightBlueAccent,
-      Colors.pinkAccent,
-      Colors.yellowAccent,
-    ];
-
-    int index = 0;
-
-    return totals.entries.map((entry) {
-      final section = PieChartSectionData(
-        color: colors[index % colors.length],
-        value: entry.value,
-        radius: 60,
-        title: entry.key,
-        titleStyle: const TextStyle(
-          color: Colors.black,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      index++;
-      return section;
-    }).toList();
-  }
-
-  List<FlSpot> _buildLineSpots(Map<int, double> data) {
-    final sortedKeys = data.keys.toList()..sort();
-
-    return sortedKeys.map((day) {
-      return FlSpot(day.toDouble(), data[day] ?? 0);
-    }).toList();
   }
 }
