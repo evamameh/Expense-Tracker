@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:expense_tracker/ui/widgets/stat_card.dart';
-import 'package:expense_tracker/ui/widgets/time_period_selector.dart';
 import 'package:expense_tracker/ui/widgets/analytics_line_chart.dart';
 import 'package:expense_tracker/ui/widgets/analytics_pie_chart.dart';
 import 'package:expense_tracker/ui/widgets/compare_previous_month_switch.dart';

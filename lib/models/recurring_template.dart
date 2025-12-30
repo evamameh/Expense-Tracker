@@ -1,12 +1,12 @@
 class RecurringTemplate {
-  final String id;
-  final double amount;
-  final String currency;
-  final String note;
-  final Map<String, double>? splits;
-  final int intervalMonths; 
-  DateTime nextDate;
-  final bool active;
+  final String id;                   
+  final double amount;               
+  final String currency;              
+  final String note;                  
+  final Map<String, double>? splits;  
+  final int intervalMonths;         
+  DateTime nextDate;                  
+  final bool active;                  
 
   RecurringTemplate({
     required this.id,
@@ -19,6 +19,7 @@ class RecurringTemplate {
     this.active = true,
   });
 
+  /// Creates a modified copy of the template
   RecurringTemplate copyWith({
     String? id,
     double? amount,

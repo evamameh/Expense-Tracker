@@ -1,16 +1,48 @@
-# expense_tracker
+Expense Tracker App
+- A Flutter-based expense tracking application that allows users to manage daily expenses, budgets, split transactions, recurring expenses, and view analytics with full currency and date-range support.
 
-A new Flutter project.
+Features Overview
+Expense Management
+- Add, edit, and delete expenses (in-memory)
+- Optional notes and receipt flag
+- Support for split expenses across multiple categories
+- Safe editing rules to preserve split integrity
 
-## Getting Started
+Recurring Expenses
+- Create recurring expenses from normal expenses
+- Monthly interval support
+- Automatic generation of due expenses
 
-This project is a starting point for a Flutter application.
+Budget Management
+- Category-based budgets
+- Editable limits
+- Visual progress indicators
+- Over-budget and safe status labels
 
-A few resources to get you started if this is your first Flutter project:
+Date Range Filtering
+- Defaults to current month on app launch
+- Custom date range selection via calendar
+- One-tap reset to current month
+- All views update reactively
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Multi-Currency Support
+- Supported currencies: USD, EUR, GBP, JPY, PHP
+- Centralized currency conversion
+- Consistent values across Home, Budget, and Analytics
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Analytics (Derived from Core Logic)
+- Daily spending trends
+- Category-based expense distribution
+- Split-aware calculations
+- Fully date-range and currency responsive
+
+
+
+Architecture Overview
+- The app follows a Provider-based reactive architecture using Riverpod.
+
+Key Layers
+- UI Layer – Pages & widgets
+- Provider Layer – State & computed providers
+- Core Logic Layer – Currency & expense calculations
+- Model Layer – Data structures

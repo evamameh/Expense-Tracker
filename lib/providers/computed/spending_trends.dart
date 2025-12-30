@@ -9,10 +9,10 @@ import 'date_range_provider.dart';
 
 final spendingTrendsProvider = Provider<Map<int, double>>((ref) {
   final expenses = ref.watch(expensesNotifierProvider);
+
   final dateRange = ref.watch(dateRangeProvider);
   final selectedCurrency = ref.watch(selectedCurrencyProvider);
   final rates = ref.watch(currencyRatesProvider);
-
 
   if (dateRange == null) return {};
 
@@ -22,7 +22,8 @@ final spendingTrendsProvider = Provider<Map<int, double>>((ref) {
   );
 
   final daily = <int, double>{};
-  
+
+  // Sum expenses per day (split-aware)
   for (final e in filtered) {
     final baseAmount = expenseTotalInBaseCurrency(e);
     final converted = CurrencyConverter.convert(
@@ -31,6 +32,7 @@ final spendingTrendsProvider = Provider<Map<int, double>>((ref) {
       selectedCurrency,
       rates,
     );
+
     final day = e.date.day;
     daily[day] = (daily[day] ?? 0) + converted;
   }

@@ -1,11 +1,11 @@
 class RecurringExpense {
-  final String id;
-  final String originalExpenseId;
-  final String category;
-  final double amount;
-  final String currency;
-  final int intervalMonths;
-  final DateTime nextDate;
+  final String id;                
+  final String originalExpenseId; 
+  final String category;          
+  final double amount;            
+  final String currency;          
+  final int intervalMonths;       
+  final DateTime nextDate;        
 
   RecurringExpense({
     required this.id,
@@ -17,6 +17,7 @@ class RecurringExpense {
     required this.nextDate,
   });
 
+  /// Returns a copy with updated next date
   RecurringExpense copyWith({
     DateTime? nextDate,
   }) {

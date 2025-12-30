@@ -1,18 +1,16 @@
 class Expense {
-  final String id;
-  final double amount; 
-  final String category;
-  final DateTime date;
-  final String currency;
-  final String? note;
-  final bool isRecurring;
-  final bool hasReceipt;
+  final String id;            
+  final double amount;        
+  final String category;      
+  final DateTime date;        
+  final String currency;      
+  final String? note;         
+  final bool isRecurring;    
+  final bool hasReceipt;      
 
-  final Map<String, double>? splits;
-
-  final int recurrenceIntervalMonths;
-
-  final String? templateId;
+  final Map<String, double>? splits;   
+  final int recurrenceIntervalMonths;  
+  final String? templateId;             
 
   Expense({
     required this.id,
@@ -28,6 +26,7 @@ class Expense {
     this.templateId,
   });
 
+  //Returns a copied instance with updated values
   Expense copyWith({
     String? id,
     double? amount,
@@ -51,7 +50,8 @@ class Expense {
       isRecurring: isRecurring ?? this.isRecurring,
       hasReceipt: hasReceipt ?? this.hasReceipt,
       splits: splits ?? this.splits,
-      recurrenceIntervalMonths: recurrenceIntervalMonths ?? this.recurrenceIntervalMonths,
+      recurrenceIntervalMonths:
+          recurrenceIntervalMonths ?? this.recurrenceIntervalMonths,
       templateId: templateId ?? this.templateId,
     );
   }

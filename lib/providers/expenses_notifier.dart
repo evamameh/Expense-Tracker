@@ -7,16 +7,15 @@ class ExpensesNotifier extends StateNotifier<List<Expense>> {
 
   void addExpense(Expense expense) {
     state = [...state, expense];
-    
+
+    // Handles split expenses
     if (expense.splits != null && expense.splits!.isNotEmpty) {
       for (final entry in expense.splits!.entries) {
         final category = entry.key;
         final amount = entry.value;
-          ('Processing split: $category = $amount'); 
-        
       }
-    } else {
-        ('Processing single expense: ${expense.category} = ${expense.amount}');
+    } 
+    else {
     }
   }
 
@@ -58,4 +57,5 @@ class ExpensesNotifier extends StateNotifier<List<Expense>> {
 }
 
 final expensesNotifierProvider =
-    StateNotifierProvider<ExpensesNotifier, List<Expense>>((ref) => ExpensesNotifier());
+    StateNotifierProvider<ExpensesNotifier, List<Expense>>(
+        (ref) => ExpensesNotifier());

@@ -4,10 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/expense.dart';
 import '../../providers/expenses_notifier.dart';
 import '../../providers/budget_notifier.dart';
-import '../../providers/currency/currency_rates.dart';
 
+import '../../providers/currency/selected_currency.dart';
+import '../../providers/currency/currency_rates.dart';
 import '../../core/currency/currency_converter.dart';
 import '../../core/expense/expense_totals.dart';
+
+const Color bgMain = Color(0xFF0B1C14);
+const Color bgCard = Color(0xFF12291D);
+const Color bgAccent = Color(0xFF1A2E23);
+const Color borderColor = Color(0xFF2E4A3A);
+const Color primaryGreen = Color(0xFF6EF2B5);
 
 class EditExpensePage extends ConsumerStatefulWidget {
   final Expense expense;
@@ -21,40 +28,40 @@ class EditExpensePage extends ConsumerStatefulWidget {
 class _EditExpensePageState extends ConsumerState<EditExpensePage> {
   final _formKey = GlobalKey<FormState>();
 
-  late TextEditingController _amountController;
-  late TextEditingController _noteController;
+  final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
 
+  String _selectedCurrency = '';
   late DateTime _selectedDate;
   late String _selectedCategory;
-  late String _selectedCurrency;
-
   late bool _hasReceipt;
   late bool _isRecurring;
 
-  late double _originalTotal;
-  bool _amountError = false;
-
-  bool get _hasSplits =>
-      widget.expense.splits != null &&
-      widget.expense.splits!.isNotEmpty;
+  Map<String, double> _editableSplits = {};
+  bool get _hasSplits => _editableSplits.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
 
-    _originalTotal = expenseTotalInBaseCurrency(widget.expense);
-
-    _amountController =
-        TextEditingController(text: _originalTotal.toStringAsFixed(2));
-    _noteController =
-        TextEditingController(text: widget.expense.note ?? '');
-
+    _selectedCurrency = widget.expense.currency;
     _selectedDate = widget.expense.date;
     _selectedCategory = widget.expense.category;
-    _selectedCurrency = widget.expense.currency;
-
     _hasReceipt = widget.expense.hasReceipt;
     _isRecurring = widget.expense.isRecurring;
+    _noteController.text = widget.expense.note ?? '';
+
+    _editableSplits =
+        Map<String, double>.from(widget.expense.splits ?? {});
+
+    if (_hasSplits) {
+      final total =
+          _editableSplits.values.fold(0.0, (a, b) => a + b);
+      _amountController.text = total.toStringAsFixed(2);
+    } else {
+      _amountController.text =
+          widget.expense.amount.toStringAsFixed(2);
+    }
   }
 
   @override
@@ -71,70 +78,41 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
+    if (picked != null) setState(() => _selectedDate = picked);
   }
 
-  void _onCurrencyChange(
-    String newCurrency,
-    Map<String, double> rates,
-  ) {
-    final oldAmount = double.tryParse(_amountController.text) ?? 0.0;
-
-    final converted = CurrencyConverter.convert(
-      oldAmount,
-      _selectedCurrency,
-      newCurrency,
-      rates,
-    );
-
-    setState(() {
-      _selectedCurrency = newCurrency;
-      _amountController.text = converted.toStringAsFixed(2);
-      _amountError = false;
-    });
+  void _recalculateTotal() {
+    final total =
+        _editableSplits.values.fold(0.0, (a, b) => a + b);
+    _amountController.text = total.toStringAsFixed(2);
   }
 
   void _save() {
     if (!_formKey.currentState!.validate()) return;
 
-    final amount = double.tryParse(_amountController.text);
-    if (amount == null) return;
-
-    // 🔴 INLINE ERROR FOR SPLIT EXPENSES
-    if (_hasSplits && amount != _originalTotal) {
-      setState(() {
-        _amountError = true;
-      });
-      return;
-    }
-
     final updated = widget.expense.copyWith(
-      amount: amount,
-      category: _selectedCategory,
+      amount: double.parse(_amountController.text),
+      currency: _selectedCurrency,
+      category: _hasSplits
+    ? (_editableSplits.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value)))
+        .first.key: _selectedCategory,
       date: _selectedDate,
       note: _noteController.text.isEmpty ? null : _noteController.text,
-      currency: _selectedCurrency,
       hasReceipt: _hasReceipt,
       isRecurring: _isRecurring,
-
-      // 🔒 Preserve splits
-      splits: widget.expense.splits,
-      recurrenceIntervalMonths:
-          widget.expense.recurrenceIntervalMonths,
+      splits: _hasSplits ? _editableSplits : null,
     );
 
-    ref.read(expensesNotifierProvider.notifier).updateExpense(updated);
+    ref.read(expensesNotifierProvider.notifier)
+        .updateExpense(updated);
+
     Navigator.pop(context);
   }
 
   void _delete() {
-    ref
-        .read(expensesNotifierProvider.notifier)
+    ref.read(expensesNotifierProvider.notifier)
         .deleteExpense(widget.expense.id);
-
     Navigator.pop(context);
   }
 
@@ -154,14 +132,15 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
             "Fun",
             "Health",
             "Subscriptions",
-            "Other"
+            "Other",
           ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B1C14),
+      backgroundColor: bgMain,
       appBar: AppBar(
+        backgroundColor: bgMain,
+        elevation: 0,
         title: const Text("Edit Expense"),
-        backgroundColor: const Color(0xFF12291D),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -169,23 +148,43 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
           key: _formKey,
           child: ListView(
             children: [
-              // 🔹 Currency selector
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: ["USD", "EUR", "GBP", "JPY", "PHP"].map((c) {
+                  children:
+                      ["USD", "EUR", "GBP", "JPY", "PHP"].map((c) {
                     return Padding(
                       padding: const EdgeInsets.only(right: 10),
                       child: GestureDetector(
-                        onTap: () => _onCurrencyChange(c, rates),
+                        onTap: () {
+                          setState(() {
+                            _selectedCurrency = c;
+
+                            final baseAmount =
+                                expenseTotalInBaseCurrency(
+                                    widget.expense);
+
+                            final converted =
+                                CurrencyConverter.convert(
+                              baseAmount,
+                              widget.expense.currency,
+                              c,
+                              rates,
+                            );
+
+                            _amountController.text =
+                                converted.toStringAsFixed(2);
+                          });
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 10),
                           decoration: BoxDecoration(
                             color: _selectedCurrency == c
-                                ? Colors.greenAccent
-                                : const Color(0xFF1A2E23),
-                            borderRadius: BorderRadius.circular(30),
+                                ? primaryGreen
+                                : bgAccent,
+                            borderRadius:
+                                BorderRadius.circular(30),
                           ),
                           child: Text(
                             c,
@@ -202,120 +201,135 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                   }).toList(),
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              // 🔹 Amount (INLINE ERROR LIKE ADD PAGE)
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _amountController,
+                enabled: !_hasSplits,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: "Amount",
-                  labelStyle:
-                      const TextStyle(color: Colors.white70),
-                  filled: true,
-                  fillColor: const Color(0xFF12291D),
-                  border: const OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(12)),
-                  ),
-                  errorText: _amountError
-                      ? "Total amount cannot be changed for split expenses"
-                      : null,
+                style: TextStyle(
+                  color: _hasSplits ? Colors.white70 : Colors.white,
                 ),
-                onChanged: (_) {
-                  if (_amountError) {
-                    setState(() => _amountError = false);
-                  }
-                },
+                decoration: _input(
+                  label: _hasSplits
+                      ? "Total Amount (Auto-calculated)"
+                      : "Amount",
+                  locked: _hasSplits,
+                ),
                 validator: (v) =>
                     v == null || double.tryParse(v) == null
                         ? "Enter valid amount"
                         : null,
               ),
-
               const SizedBox(height: 16),
+              GestureDetector(
+                onTap: _pickDate,
+                child: _pill(
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today,
+                          color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        "${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}",
+                        style: const TextStyle(
+                            color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (!_hasSplits)
+                GestureDetector(
+                  onTap: () async {
+                    final selected =
+                        await showModalBottomSheet<String>(
+                      context: context,
+                      backgroundColor: bgMain,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.vertical(
+                                top: Radius.circular(20)),
+                      ),
+                      builder: (_) => ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: categories
+                            .map(
+                              (c) => ListTile(
+                                title: Text(c,
+                                    style: const TextStyle(
+                                        color: Colors.white)),
+                                onTap: () =>
+                                    Navigator.pop(context, c),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    );
 
-              // 🔹 Category + Date
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _selectedCategory,
-                      dropdownColor: const Color(0xFF12291D),
-                      items: categories
-                          .map((c) => DropdownMenuItem(
-                                value: c,
-                                child: Text(
-                                  c,
-                                  style: const TextStyle(
-                                      color: Colors.white),
-                                ),
-                              ))
-                          .toList(),
-                      onChanged: (v) =>
-                          setState(() => _selectedCategory = v!),
-                      decoration: _input("Category"),
+                    if (selected != null) {
+                      setState(
+                          () => _selectedCategory = selected);
+                    }
+                  },
+                  child: _pill(
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(_selectedCategory,
+                              style: const TextStyle(
+                                  color: Colors.white)),
+                        ),
+                        const Icon(Icons.arrow_drop_down,
+                            color: Colors.white),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _pickDate,
-                    icon: const Icon(Icons.calendar_today),
-                    label: Text(
-                        "${_selectedDate.month}/${_selectedDate.day}/${_selectedDate.year}"),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(0xFF1A2E23)),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // 🔹 Note
+                ),
+              if (!_hasSplits) const SizedBox(height: 16),
               TextFormField(
                 controller: _noteController,
                 maxLines: 2,
                 style: const TextStyle(color: Colors.white),
-                decoration: _input("Note (optional)"),
+                decoration:
+                    _input(label: "Note (optional)"),
               ),
-
               const SizedBox(height: 16),
-
               SwitchListTile(
                 value: _hasReceipt,
                 onChanged: (v) =>
                     setState(() => _hasReceipt = v),
                 title: const Text("Has Receipt?",
-                    style: TextStyle(color: Colors.white)),
-                activeThumbColor: Colors.greenAccent,
+                    style:
+                        TextStyle(color: Colors.white)),
+                activeThumbColor: primaryGreen,
               ),
-
               SwitchListTile(
                 value: _isRecurring,
                 onChanged: (v) =>
                     setState(() => _isRecurring = v),
                 title: const Text("Recurring Expense",
-                    style: TextStyle(color: Colors.white)),
-                activeThumbColor: Colors.greenAccent,
+                    style:
+                        TextStyle(color: Colors.white)),
+                activeThumbColor: primaryGreen,
               ),
-
-              //  READ-ONLY SPLITS
-              _splitIndicator(widget.expense, rates),
-
+              const SizedBox(height: 20),
+              if (_hasSplits)
+                _splitEditor(categories),
               const SizedBox(height: 30),
-
               ElevatedButton(
-                onPressed: _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
+                  backgroundColor: primaryGreen,
                   foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(20),
+                  ),
                   padding:
                       const EdgeInsets.symmetric(vertical: 14),
                 ),
+                onPressed: _save,
                 child: const Text(
                   "Save Changes",
                   style: TextStyle(
@@ -323,17 +337,18 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
                       fontWeight: FontWeight.bold),
                 ),
               ),
-
               const SizedBox(height: 12),
-
               ElevatedButton(
-                onPressed: _delete,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(20),
+                  ),
                   padding:
                       const EdgeInsets.symmetric(vertical: 14),
                 ),
+                onPressed: _delete,
                 child: const Text(
                   "Delete Expense",
                   style: TextStyle(
@@ -348,91 +363,162 @@ class _EditExpensePageState extends ConsumerState<EditExpensePage> {
     );
   }
 
-  // 🔹 READ-ONLY SPLIT INDICATOR
-  Widget _splitIndicator(Expense expense, Map<String, double> rates) {
-    if (expense.splits == null || expense.splits!.isEmpty) {
-      return const SizedBox.shrink();
-    }
+  Widget _splitEditor(List<String> categories) {
+    final used = _editableSplits.keys.toSet();
 
     return Container(
-      margin: const EdgeInsets.only(top: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF12291D),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white12),
+        color: bgCard,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
-              Icon(Icons.call_split,
-                  color: Colors.greenAccent, size: 20),
-              SizedBox(width: 8),
-              Text(
-                "Split Breakdown",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Spacer(),
-              Icon(Icons.lock,
-                  color: Colors.white38, size: 18),
-            ],
+          const Text(
+            "Split Breakdown",
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          ...expense.splits!.entries.map((e) {
-            final converted = CurrencyConverter.convert(
-              e.value,
-              expense.currency,
-              _selectedCurrency,
-              rates,
-            );
+          ..._editableSplits.entries.toList().map((entry) {
+            final amountController =
+                TextEditingController(
+                    text: entry.value.toStringAsFixed(2));
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(e.key,
-                      style: const TextStyle(
-                          color: Colors.white70)),
-                  Text(
-                    "${converted.toStringAsFixed(2)} $_selectedCurrency",
-                    style: const TextStyle(
-                      color: Colors.greenAccent,
-                      fontWeight: FontWeight.w600,
-                    ),
+            return Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: entry.key,
+                    dropdownColor: bgCard,
+                    items: categories.map((c) {
+                      final disabled =
+                          used.contains(c) &&
+                              c != entry.key;
+                      return DropdownMenuItem(
+                        value: c,
+                        enabled: !disabled,
+                        child: Text(
+                          c,
+                          style: TextStyle(
+                            color: disabled
+                                ? Colors.white38
+                                : Colors.white,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (newCat) {
+                      if (newCat == null ||
+                          newCat == entry.key) return;
+                      setState(() {
+                        final val =
+                            _editableSplits.remove(entry.key)!;
+                        _editableSplits[newCat] = val;
+                      });
+                    },
+                    decoration: _splitInput(),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: amountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(
+                            decimal: true),
+                    style:
+                        const TextStyle(color: Colors.white),
+                    decoration: _splitInput(),
+                    onChanged: (v) {
+                      final n = double.tryParse(v);
+                      if (n == null) return;
+                      setState(() {
+                        _editableSplits[entry.key] = n;
+                        _recalculateTotal();
+                      });
+                    },
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete,
+                      color: Colors.redAccent),
+                  onPressed: () {
+                    setState(() {
+                      _editableSplits.remove(entry.key);
+                      _recalculateTotal();
+                    });
+                  },
+                ),
+              ],
             );
           }),
-          const SizedBox(height: 8),
-          const Text(
-            "Splits are read-only. Edit from Add Expense.",
-            style:
-                TextStyle(color: Colors.white38, fontSize: 12),
-          ),
         ],
       ),
     );
   }
 
-  InputDecoration _input(String label) {
+  InputDecoration _input(
+      {required String label, bool locked = false}) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
       filled: true,
-      fillColor: const Color(0xFF12291D),
-      border: const OutlineInputBorder(
+      fillColor: bgCard,
+      suffixIcon:
+          locked
+              ? const Icon(Icons.lock,
+                  color: Colors.white38)
+              : null,
+      enabledBorder: OutlineInputBorder(
         borderRadius:
-            BorderRadius.all(Radius.circular(12)),
+            BorderRadius.circular(14),
+        borderSide:
+            const BorderSide(color: borderColor),
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(14),
+        borderSide:
+            const BorderSide(color: primaryGreen),
+      ),
+    );
+  }
+
+  InputDecoration _splitInput() {
+    return InputDecoration(
+      filled: true,
+      fillColor: bgAccent,
+      enabledBorder: OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(12),
+        borderSide:
+            const BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(12),
+        borderSide:
+            const BorderSide(color: primaryGreen),
+      ),
+    );
+  }
+
+  Widget _pill(Widget child) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: bgCard,
+        borderRadius:
+            BorderRadius.circular(16),
+        border:
+            Border.all(color: borderColor),
+      ),
+      child: child,
     );
   }
 }

@@ -10,17 +10,19 @@ import '../../core/expense/expense_totals.dart';
 
 final monthlyTotalProvider = Provider<double>((ref) {
   final expenses = ref.watch(expensesNotifierProvider);
+
   final selectedCurrency = ref.watch(selectedCurrencyProvider);
   final rates = ref.watch(currencyRatesProvider);
   final dateRange = ref.watch(dateRangeProvider);
 
   if (dateRange == null) return 0.0;
 
+  // Filter expenses within date range
   final filteredExpenses = expenses.where((e) =>
-    !e.date.isBefore(dateRange.start) &&
-    !e.date.isAfter(dateRange.end)
-  );
+      !e.date.isBefore(dateRange.start) &&
+      !e.date.isAfter(dateRange.end));
 
+  // Sum all expenses (split-aware + converted)
   return filteredExpenses.fold<double>(
     0.0,
     (sum, e) {

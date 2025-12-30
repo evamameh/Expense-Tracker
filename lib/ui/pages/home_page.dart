@@ -35,7 +35,6 @@ class HomePage extends ConsumerWidget {
         return !e.date.isBefore(dateRange.start) &&
             !e.date.isAfter(dateRange.end);
       }
-
       return e.date.year == defaultMonth.year &&
           e.date.month == defaultMonth.month;
     }).toList();
@@ -63,7 +62,7 @@ class HomePage extends ConsumerWidget {
 
     final remaining = monthlyBudget - totalSpent;
 
-    // 🔹 TOP CATEGORIES (DECEMBER BY DEFAULT)
+    // sorted by highest spending
     final categories =
         expensesByCategoryInBaseCurrency(filteredExpenses).entries.toList()
           ..sort((a, b) => b.value.compareTo(a.value));
@@ -83,26 +82,22 @@ class HomePage extends ConsumerWidget {
                     dateRange == null
                         ? "December 2025"
                         : "${dateRange.start.month}/${dateRange.start.day}"
-                            " - ${dateRange.end.month}/${dateRange.end.day}",
-                    style:
-                        const TextStyle(fontSize: 22, color: Colors.white),
+                          " - ${dateRange.end.month}/${dateRange.end.day}",
+                    style: const TextStyle(fontSize: 22, color: Colors.white),
                   ),
                   Row(
                     children: [
+                      // Clear custom range
                       if (dateRange != null)
                         IconButton(
-                          icon: const Icon(Icons.close,
-                              color: Colors.white70),
-                          tooltip: "Clear date range",
+                          icon: const Icon(Icons.close, color: Colors.white70),
                           onPressed: () {
-                            ref
-                                .read(dateRangeProvider.notifier)
-                                .state = null;
+                            ref.read(dateRangeProvider.notifier).state = null;
                           },
                         ),
+                      // Open date range picker
                       IconButton(
-                        icon: const Icon(Icons.date_range,
-                            color: Colors.white),
+                        icon: const Icon(Icons.date_range, color: Colors.white),
                         onPressed: () async {
                           final picked = await showDateRangePicker(
                             context: context,
@@ -110,11 +105,8 @@ class HomePage extends ConsumerWidget {
                             lastDate: DateTime(2035),
                             initialDateRange: dateRange,
                           );
-
                           if (picked != null) {
-                            ref
-                                .read(dateRangeProvider.notifier)
-                                .state = picked;
+                            ref.read(dateRangeProvider.notifier).state = picked;
                           }
                         },
                       ),
@@ -125,17 +117,14 @@ class HomePage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // 🔹 Currency Selector
               const CurrencySelector(),
 
               const SizedBox(height: 20),
 
-              // 🔹 Budget Card
               const BudgetCard(),
 
               const SizedBox(height: 28),
 
-              // 🔹 Top Categories
               const Text(
                 "Top Categories",
                 style: TextStyle(
@@ -162,10 +151,8 @@ class HomePage extends ConsumerWidget {
                 }).toList(),
               ),
 
-
               const SizedBox(height: 28),
 
-              // 🔹 Recent Transactions
               const Text(
                 "Recent Transactions",
                 style: TextStyle(

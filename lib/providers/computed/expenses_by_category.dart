@@ -16,11 +16,12 @@ final expensesByCategoryProvider = Provider<Map<String, double>>((ref) {
   if (dateRange == null) return {};
 
   final filtered = expenses.where((e) =>
-    !e.date.isBefore(dateRange.start) &&
-    !e.date.isAfter(dateRange.end));
-    
+      !e.date.isBefore(dateRange.start) &&
+      !e.date.isAfter(dateRange.end));
+
   final byCategory = <String, double>{};
 
+  // Sum expenses per category (split-aware + converted)
   for (final e in filtered) {
     final baseAmount = expenseTotalInBaseCurrency(e);
     final converted = CurrencyConverter.convert(
@@ -29,6 +30,7 @@ final expensesByCategoryProvider = Provider<Map<String, double>>((ref) {
       selectedCurrency,
       rates,
     );
+
     final cat = e.category;
     byCategory[cat] = (byCategory[cat] ?? 0) + converted;
   }

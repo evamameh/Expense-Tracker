@@ -14,7 +14,11 @@ class RecurringNotifier extends StateNotifier<List<RecurringExpense>> {
       amount: expense.amount,
       currency: expense.currency,
       intervalMonths: intervalMonths,
-      nextDate: DateTime(expense.date.year, expense.date.month + intervalMonths, expense.date.day),
+      nextDate: DateTime(
+        expense.date.year,
+        expense.date.month + intervalMonths,
+        expense.date.day,
+      ),
     );
 
     state = [...state, template];

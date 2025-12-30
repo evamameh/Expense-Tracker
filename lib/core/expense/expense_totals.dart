@@ -37,6 +37,5 @@ Map<String, double> expensesByCategoryInBaseCurrency(
     }
   }
 
-  return totals; 
+  return totals;
 }
-

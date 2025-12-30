@@ -19,7 +19,6 @@ class BudgetPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final budgets = ref.watch(budgetNotifierProvider);
     final expenses = ref.watch(expensesNotifierProvider);
-
     final selectedCurrency = ref.watch(selectedCurrencyProvider);
     final rates = ref.watch(currencyRatesProvider);
 
@@ -42,7 +41,6 @@ class BudgetPage extends ConsumerWidget {
 
               const SizedBox(height: 20),
 
-              // 🔹 Currency selector
               const CurrencySelector(),
 
               const SizedBox(height: 20),
@@ -52,7 +50,7 @@ class BudgetPage extends ConsumerWidget {
                   children: budgets.entries.map((entry) {
                     final category = entry.key;
 
-                    // 🔹 Budget limit (stored in PHP)
+                    // Convert budget limit from PHP
                     final limit = CurrencyConverter.convert(
                       entry.value.limit,
                       "PHP",
@@ -60,12 +58,14 @@ class BudgetPage extends ConsumerWidget {
                       rates,
                     );
 
-                    // 🔹 Total spent for category (split-aware, base currency)
-                    final spentBase = expenseTotalForCategoryInBaseCurrency(
+                    // Total spent for category (split-aware)
+                    final spentBase =
+                        expenseTotalForCategoryInBaseCurrency(
                       expenses,
                       category,
                     );
 
+                    // Convert spent amount
                     final spent = CurrencyConverter.convert(
                       spentBase,
                       "PHP",
@@ -73,6 +73,7 @@ class BudgetPage extends ConsumerWidget {
                       rates,
                     );
 
+                    // Progress percentage
                     final percent =
                         limit == 0 ? 0.0 : (spent / limit).clamp(0.0, 1.0);
 
@@ -115,6 +116,7 @@ class BudgetPage extends ConsumerWidget {
                                       );
 
                                       if (updated != null) {
+                                        // back to PHP before saving
                                         final newLimitPHP =
                                             CurrencyConverter.convert(
                                           updated,
@@ -173,6 +175,7 @@ class BudgetPage extends ConsumerWidget {
                             style: const TextStyle(
                                 color: Colors.white70, fontSize: 14),
                           ),
+
                           Text(
                             "Limit: ${limit.toStringAsFixed(2)} $selectedCurrency",
                             style: const TextStyle(
@@ -227,6 +230,7 @@ class BudgetPage extends ConsumerWidget {
             child: const Text("Cancel",
                 style: TextStyle(color: Colors.white70)),
           ),
+
           TextButton(
             onPressed: () {
               final val = double.tryParse(controller.text);

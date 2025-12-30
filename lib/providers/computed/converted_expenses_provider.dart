@@ -15,11 +15,9 @@ import '../../core/expense/expense_totals.dart';
   final rates = ref.watch(currencyRatesProvider);
   final dateRange = ref.watch(dateRangeProvider);
 
-  // 🔹 DEFAULT MONTH = CURRENT MONTH
   final now = DateTime.now();
   final defaultMonth = DateTime(now.year, now.month);
 
-  // 🔹 Filter expenses by date range OR current month
   final filtered = expenses.where((e) {
     if (dateRange != null) {
       return !e.date.isBefore(dateRange.start) &&
@@ -30,7 +28,7 @@ import '../../core/expense/expense_totals.dart';
         e.date.month == defaultMonth.month;
   });
 
-  // 🔹 Convert each expense to selected currency
+  // Convert each expense to selected currency
   return filtered.map((e) {
     final baseAmount = expenseTotalInBaseCurrency(e);
 
